@@ -6,39 +6,14 @@
 // - describe what you did to take this project "above and beyond"
 
 const SPEED = 2;
+const PLAYER_SIZE = 10;
 let shared, guests, my;
 let test;
 
 
-class Player {
-  constructor(x, y, color, direction, isAlive, trail, base){
-    this.x = x;
-    this.y = y;
-    this.dx = dx;
-    this.dy = dy;
-    this.id = Math.floor(Math.random(1000));
-    this.color = color;
-    this.direction  = direction;
-    this.base = base;
-    this.trail = trail;
-    this.isAlive = isAlive;
-    
-  }
-  update(){
-    my.pos.dx = lerp(my.pos.dx, i.x * SPEED, 0.2);
-    my.pos.dy = lerp(my.pos.dy, i.y * SPEED, 0.2);
-    my.pos.x += my.pos.dx;
-    my.pos.y += my.pos.dy;
-    playerIsDead();
 
-  }
 
-  
-}
 
-function checkCollisions(playerX, playerY){
-
-}
 
 function preload(){
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
@@ -50,38 +25,61 @@ function preload(){
   my = partyLoadMyShared();
 
 }
+
+class Player {
+  constructor(x, y, dx, dy, color, direction, isAlive, trail, base){
+    this.x = x;
+    this.y = y;
+    this.dx = dx;
+    this.dy = dy;
+    this.id = Math.floor(Math.random(1000));
+    this.color = color;
+    this.direction  = direction;
+    this.base = base;
+    this.trail = trail;
+    this.isAlive = true;
+    
+  }
+  update(){
+    let i = input();
+    if(isAlive){
+      dx = lerp(dx, i.x * SPEED, 0.1);
+      dy = lerp(dy, i.y * SPEED, 0.1);
+      this.x += this.dx;
+      this.y += this.dy;
+    }
+  }
+}
 function setup() {
   createCanvas(windowWidth, windowHeight);
   my.player = new Player(0,0,0,0,0,0,0);
-  console.log(test);
+  console.log("me", JSON.stringify(my));
+  console.log("guests", JSON.stringify(guests));
+
 }
 
 function draw() {
   background(0);
-  circle(mouseX, mouseY,50);
+  drawPlayers();
+  updatePlayer();
 }
 
+function mousePressed(){
+}
 function drawPlayers(){
   for(let g of guests) {
     if(g.player !== my.player){
-      push();
-      drawNewPlayer(g.player.x, g.player.y, g.player.color, g.player.direction, g.player.isAlive, g.player.trail, g.player.base);
-      pop();
+      rect(g.player.x, g.player.y, 10, 15);
+      console.log("playerHasSpawned!");
     }
   }
 }
-function drawNewPlayer(x, y, id, color, direction, isAlive, trail, base){
-  if (isAlive){
-  }
+
+function checkCollisions(playerX, playerY){
 
 }
-function updatePlayer() {
+function updatePlayer(){
   my.player.update();
-}
-function movePlayer() {
-  if (my.isAlive){
-    my.pos.dx = lerp(my.pos.dx, i.x * SPEED);
-  }
 }
 
 //disc room clone input functions
@@ -104,5 +102,5 @@ function verticalMovement(){
   return moveDown() - moveUp();
 }
 function input(){
-  return {x: verticalMovement(), y: verticalMovement};
+  return {x: verticalMovement(), y: verticalMovement()};
 }
