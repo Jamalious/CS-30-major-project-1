@@ -1,5 +1,5 @@
-// Project Title
-// Your Name
+// Paper.io lite
+// John Asiamah
 // Date
 //
 // Extra for Experts:
@@ -9,10 +9,7 @@ const SPEED = 2;
 const PLAYER_SIZE = 10;
 let shared, guests, my;
 let test;
-
-
-
-
+let players = [];
 
 
 function preload(){
@@ -40,6 +37,9 @@ class Player {
     this.isAlive = true;
     
   }
+  display(){
+    
+  }
   update(){
     let i = input();
     if(isAlive){
@@ -62,6 +62,11 @@ function draw() {
   background(0);
   drawPlayers();
   updatePlayer();
+  for(p of players){
+    p.update();
+    p.display();
+
+  }
 }
 
 function mousePressed(){
