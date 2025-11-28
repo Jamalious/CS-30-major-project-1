@@ -10,9 +10,11 @@ const PLAYER_SIZE = 10;
 let shared, guests, my;
 let test;
 let players = [];
+let playerIMG;
 
 
 function preload(){
+  playerIMG = loadImage("soccer-brainrot.jpg");
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
@@ -24,7 +26,7 @@ function preload(){
 }
 
 class Player {
-  constructor(x, y, dx, dy, color, direction, isAlive, trail, base){
+  constructor(x, y, dx, dy, color, direction, trail, base){
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -74,7 +76,7 @@ function mousePressed(){
 function drawPlayers(){
   for(let g of guests) {
     if(g.player !== my.player){
-      rect(g.player.x, g.player.y, 10, 15);
+      image(playerIMG, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
       console.log("playerHasSpawned!");
     }
   }
