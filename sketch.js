@@ -7,6 +7,7 @@
 
 const SPEED = 2;
 const PLAYER_SIZE = 50;
+const STARTING_BASE = 100;
 let shared, guests, my;
 let test;
 let players = [];
@@ -26,16 +27,17 @@ function preload(){
 }
 
 class Player {
-  constructor(x, y, dx, dy, color, direction, trail, base){
+  constructor(x, y, dx, dy, theColor, direction, trail, base){
     this.x = x;
     this.y = y;
     this.dx = dx;
     this.dy = dy;
     this.id = Math.floor(Math.random()* 1000);
-    this.color = color;
+    this.color = theColor;
     this.direction  = direction;
     this.base = base;
-    this.trail = trail;
+    this.trail = [];
+    this.outside = false;
     this.isAlive = true;
     
   }
@@ -52,9 +54,19 @@ class Player {
       this.y += this.dy;
     }
   }
+  territory(){
+    if(outside){
+      this.trail.push(1);
+    }
+    else{
+      fill(theColor);
+      circle(this.x, this.y, STARTING_BASE);
+    }
+  }
 }
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  imageMode(CENTER);
   my.player = new Player(0,0,0,0,0,0,0);
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
@@ -75,9 +87,10 @@ function draw() {
 function mousePressed(){
 }
 function drawPlayers(){
-  for(let g of guests) {
+  for(let g of guests) { 
     image(playerIMG, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
-    console.log("playerHasSpawned!");
+    
+    // console.log("playerHasSpawned!");
    
   }
 }
@@ -109,5 +122,5 @@ function verticalMovement(){
   return moveDown() - moveUp();
 }
 function input(){
-  return {x: verticalMovement(), y: verticalMovement() };
+  return {x: horizontalMovement(), y: verticalMovement() };
 }
