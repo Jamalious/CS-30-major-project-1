@@ -6,7 +6,7 @@
 // - describe what you did to take this project "above and beyond"
 
 const SPEED = 2;
-const PLAYER_SIZE = 10;
+const PLAYER_SIZE = 50;
 let shared, guests, my;
 let test;
 let players = [];
@@ -31,7 +31,7 @@ class Player {
     this.y = y;
     this.dx = dx;
     this.dy = dy;
-    this.id = Math.floor(Math.random(1000));
+    this.id = Math.floor(Math.random()* 1000);
     this.color = color;
     this.direction  = direction;
     this.base = base;
@@ -43,10 +43,11 @@ class Player {
     
   }
   update(){
-    let i = input();
-    if(isAlive){
-      dx = lerp(dx, i.x * SPEED, 0.1);
-      dy = lerp(dy, i.y * SPEED, 0.1);
+    
+    if(this.isAlive){
+      let i = input();
+      this.dx = lerp(this.dx, i.x * SPEED, 0.1);
+      this.dy = lerp(this.dy, i.y * SPEED, 0.1);
       this.x += this.dx;
       this.y += this.dy;
     }
@@ -75,10 +76,9 @@ function mousePressed(){
 }
 function drawPlayers(){
   for(let g of guests) {
-    if(g.player !== my.player){
-      image(playerIMG, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
-      console.log("playerHasSpawned!");
-    }
+    image(playerIMG, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
+    console.log("playerHasSpawned!");
+   
   }
 }
 
@@ -91,16 +91,16 @@ function updatePlayer(){
 
 //disc room clone input functions
 function moveLeft(){
-  return keyIsDown(LEFT_ARROW) || keyIsDown(65) || keyIsDown(74);
+  return keyIsDown(LEFT_ARROW) || keyIsDown(65);
 }
 function moveRight(){
-  return keyIsDown(RIGHT_ARROW) || keyIsDown(68) || keyIsDown(76);
+  return keyIsDown(RIGHT_ARROW) || keyIsDown(68);
 }
 function moveUp(){
-  return keyIsDown(UP_ARROW) || keyIsDown(87) || keyIsDown(73);
+  return keyIsDown(UP_ARROW) || keyIsDown(87);
 }
 function moveDown(){
-  return keyIsDown(DOWN_ARROW) || keyIsDown(83) || keyIsDown(75);
+  return keyIsDown(DOWN_ARROW) || keyIsDown(83);
 }
 function horizontalMovement(){
   return moveRight() - moveLeft();
@@ -109,5 +109,5 @@ function verticalMovement(){
   return moveDown() - moveUp();
 }
 function input(){
-  return {x: verticalMovement(), y: verticalMovement()};
+  return {x: verticalMovement(), y: verticalMovement() };
 }
