@@ -12,6 +12,7 @@ let shared, guests, my;
 let test;
 let players = [];
 let playerIMG;
+let hexagonRadius = 50;
 
 
 function preload(){
@@ -38,7 +39,7 @@ class Player {
     this.base = base;
     this.trail = [];
     this.outside = false;
-    this.isAlive = true;
+    this.isAlive = false;
     
   }
   display(){
@@ -55,12 +56,15 @@ class Player {
     }
   }
   territory(){
+    if(isSpawned){
+      fill(theColor);
+      circle(this.x, this.y, STARTING_BASE);
+    }
     if(outside){
       this.trail.push(1);
     }
     else{
-      fill(theColor);
-      circle(this.x, this.y, STARTING_BASE);
+    
     }
   }
 }
@@ -68,6 +72,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
   my.player = new Player(0,0,0,0,0,0,0);
+ 
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
 
@@ -75,8 +80,13 @@ function setup() {
 
 function draw() {
   background(0);
+  drawHexagonGrid();
   drawPlayers();
   updatePlayer();
+  if (my.player.isAlive === false){
+    homeScreenOverlay();
+  }
+  
   for(p of players){
     p.update();
     p.display();
@@ -84,7 +94,41 @@ function draw() {
   }
 }
 
-function mousePressed(){
+function homeScreenOverlay(){
+  let startButton = createButton("Play");
+  startButton.position(width / 2, height / 2);
+  startButton.mousePressed(gameState);
+}
+function gameState(){
+  my.player.isAlive = !my.player.isAlive;
+}
+
+// grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
+function hexagonGrid(gridX, gridY, r){
+  beginShape(LINES);
+  let angle = 2 * PI / 6 /2;
+  for (let i = 0; i < 6; i++) {
+    vertex(gridX + r * cos(angle), gridY + r * sin(angle));
+    angle += 2 * PI / 6;
+    vertex(gridX + r * cos(angle), gridY + r * sin(angle));
+  }
+  endShape();
+}
+function drawHexagonGrid(){
+  const x_offset = hexagonRadius * cos(PI / 6);
+  const y_offset = hexagonRadius * sin(PI / 6) + hexagonRadius;
+  const x_space = 2 * x_offset;
+  const y_space = 2 * y_offset;
+  for (let y = 0; y < height; y += y_space) {
+    for (let x = 0; x < width; x += x_space) {
+      stroke('pink');
+      strokeWeight(7);
+      strokeWeight(1);
+      hexagonGrid(x, y, hexagonRadius * 0.9);
+      hexagonGrid(x + x_offset, y + y_offset, hexagonRadius * 0.9);
+    }
+  }
+
 }
 function drawPlayers(){
   for(let g of guests) { 
