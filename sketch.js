@@ -1,18 +1,26 @@
+/**
+ * Made with p5play!
+ * https://p5play.org
+ */
+
 // Paper.io lite
 // John Asiamah
 // Date
 //
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
+// sprites from https://www.spriters-resource.com/mobile/mergefellas/asset/279334/ 
 
 const SPEED = 2;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
+const B_SIZE = 50;
 let shared, guests, my;
 let test;
 let players = [];
 let playerIMG;
-let hexagonRadius = 50;
+let hexagonRadius = 30;
+let startButton;
 
 
 function preload(){
@@ -95,12 +103,19 @@ function draw() {
 }
 
 function homeScreenOverlay(){
-  let startButton = createButton("Play");
+  startButton = createButton("Play");
   startButton.position(width / 2, height / 2);
+  startButton.style("background-color", "blue");
+  startButton.style('width',  '150px');
+  startButton.style('height', '50px');
   startButton.mousePressed(gameState);
+  
+  
 }
 function gameState(){
   my.player.isAlive = !my.player.isAlive;
+  startButton.hide();
+ 
 }
 
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
@@ -115,17 +130,17 @@ function hexagonGrid(gridX, gridY, r){
   endShape();
 }
 function drawHexagonGrid(){
-  const x_offset = hexagonRadius * cos(PI / 6);
-  const y_offset = hexagonRadius * sin(PI / 6) + hexagonRadius;
-  const x_space = 2 * x_offset;
-  const y_space = 2 * y_offset;
-  for (let y = 0; y < height; y += y_space) {
-    for (let x = 0; x < width; x += x_space) {
+  const X_OFFSET = hexagonRadius * cos(PI / 6);
+  const Y_OFFSET = hexagonRadius * sin(PI / 6) + hexagonRadius;
+  const X_SPACE = 2 * X_OFFSET;
+  const Y_SPACE = 2 * Y_OFFSET;
+  for (let y = 0; y < height; y += Y_SPACE) {
+    for (let x = 0; x < width; x += X_SPACE) {
       stroke('pink');
       strokeWeight(7);
       strokeWeight(1);
       hexagonGrid(x, y, hexagonRadius * 0.9);
-      hexagonGrid(x + x_offset, y + y_offset, hexagonRadius * 0.9);
+      hexagonGrid(x + X_OFFSET, y + Y_OFFSET, hexagonRadius * 0.9);
     }
   }
 
