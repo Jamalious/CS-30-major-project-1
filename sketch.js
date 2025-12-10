@@ -22,11 +22,13 @@ let soccerBrainrot;
 let crocoBrainrot;
 let hexagonRadius = 30;
 let startButton;
+let timer;
 
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
   crocoBrainrot = loadImage("crocodile-brainrot.jpg");
+  soccerAni = loadnimation("soccer-brainrot.jpg", 1, 8);
   
   
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
@@ -85,16 +87,20 @@ class Player {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
-  // my.player = new Player(0,0,0,0,0,0,0);
+  my.player = new Player(0,0,0,0,0,0,0);
   playerSprite = new Sprite(200, 200, 30);
   playerSprite.diameter = 50;
   playerSprite.color = 'blue';
-  if (!shared.guests){
-    shared.players = {};
-  }
-  shared.players[partyId] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
+  //if (!shared.guests){
+  //  shared.players = {};
+  //}
+  //shared.players[partyId] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
+  if (partyIsHost){
+    partySetShared(shared, {timer: 0});
+
+  }
 
 }
 
