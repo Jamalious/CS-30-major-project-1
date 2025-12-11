@@ -23,12 +23,13 @@ let crocoBrainrot;
 let hexagonRadius = 30;
 let startButton;
 let timer;
-
+let bot;
+let playerSprite;
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
   crocoBrainrot = loadImage("crocodile-brainrot.jpg");
-  soccerAni = loadnimation("soccer-brainrot.jpg", 1, 8);
+  //soccerAni = loadAni("soccer-brainrot.jpg", 1, 8);
   
   
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
@@ -43,8 +44,9 @@ function preload(){
 function windowResized(){
   resizeCanvas(windowWidth, windowHeight);
 }
+
 class Player {
-  constructor(x, y, dx, dy, theColor, direction, trail, base){
+  constructor(x, y, dx, dy, theColor, direction,base){
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -97,6 +99,7 @@ function setup() {
   //shared.players[partyId] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
+  bot = new Sprite(40, 50, 50);
   if (partyIsHost){
     partySetShared(shared, {timer: 0});
 
@@ -109,6 +112,7 @@ function draw() {
   drawHexagonGrid();
   drawPlayers();
   updatePlayer();
+  botMovement();
   if (my.player.isAlive === false){
     homeScreenOverlay();
   }
@@ -120,6 +124,10 @@ function draw() {
   }
 }
 
+function botMovement(){
+  //move bot 10% of distance to the player every draw call
+  bot.moveTowards(g.player.x, g.player.y, 0.10);
+}
 function homeScreenOverlay(){
   startButton = createButton("Play");
   startButton.position(width / 2, height / 2);
