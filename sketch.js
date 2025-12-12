@@ -11,6 +11,7 @@
 // - describe what you did to take this project "above and beyond"
 // sprites from https://www.spriters-resource.com/mobile/mergefellas/asset/279334/ 
 
+
 const SPEED = 2;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
@@ -39,7 +40,7 @@ function preload(){
   });
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
-  partySetMinConnections(1);
+  
 }
 function windowResized(){
   resizeCanvas(windowWidth, windowHeight);
@@ -90,16 +91,14 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
   my.player = new Player(0,0,0,0,0,0,0);
-  playerSprite = new Sprite(200, 200, 30);
-  playerSprite.diameter = 50;
-  playerSprite.color = 'blue';
+
   //if (!shared.guests){
   //  shared.players = {};
   //}
   //shared.players[partyId] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
-  bot = new Sprite(40, 50, 50);
+ 
   if (partyIsHost){
     partySetShared(shared, {timer: 0});
 
@@ -113,9 +112,8 @@ function draw() {
   drawPlayers();
   updatePlayer();
   botMovement();
-  if (my.player.isAlive === false){
-    homeScreenOverlay();
-  }
+  homeScreenOverlay();
+  gameState();
   
   for(p of players){
     p.update();
@@ -126,7 +124,7 @@ function draw() {
 
 function botMovement(){
   //move bot 10% of distance to the player every draw call
-  bot.moveTowards(g.player.x, g.player.y, 0.10);
+  //bot.moveTowards(g.player.x, g.player.y, 0.10);
 }
 function homeScreenOverlay(){
   startButton = createButton("Play");
