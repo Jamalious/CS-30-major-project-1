@@ -12,7 +12,7 @@
 // sprites from https://www.spriters-resource.com/mobile/mergefellas/asset/279334/ 
 
 
-const SPEED = 2;
+const SPEED = 5;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
@@ -26,6 +26,7 @@ let startButton;
 let timer;
 let bot;
 let playerSprite;
+theColor =["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
@@ -42,9 +43,7 @@ function preload(){
   my = partyLoadMyShared();
   
 }
-function windowResized(){
-  resizeCanvas(windowWidth, windowHeight);
-}
+
 
 class Player {
   constructor(x, y, dx, dy, theColor, direction,base){
@@ -55,14 +54,15 @@ class Player {
     this.id = Math.floor(Math.random()* 1000);
     this.color = theColor;
     this.direction  = direction;
-    this.base = base;
+    this.base = [];
     this.trail = [];
     this.outside = false;
     this.isAlive = false;
     
   }
   display(){
-    
+    stroke(0);
+    fill(theColor);
   }
   update(){
     
@@ -73,24 +73,22 @@ class Player {
       this.x += this.dx;
       this.y += this.dy;
     }
+    let v = createVector(this.x, this.y);
+    if (this.outside){
+      this.trail.push(v);
+      if(this.history.length > 25){
+        this.history.splice(0, 1);
+      }
+    }
+    
   }
   territory(){
-    if(isSpawned){
-      fill(theColor);
-      circle(this.x, this.y, STARTING_BASE);
-    }
-    if(outside){
-      this.trail.push(1);
-    }
-    else{
-    
-    }
   }
 }
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
-  my.player = new Player(0,0,0,0,0,0,0);
+  my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
 
   //if (!shared.guests){
   //  shared.players = {};
@@ -107,6 +105,7 @@ function setup() {
 }
 
 function draw() {
+  translate(width/2 - my.player.x, height/2 - my.player.y);
   background(0);
   drawHexagonGrid();
   drawPlayers();
@@ -115,11 +114,7 @@ function draw() {
   homeScreenOverlay();
   gameState();
   
-  for(p of players){
-    p.update();
-    p.display();
-
-  }
+ 
 }
 
 function botMovement(){
@@ -172,6 +167,7 @@ function drawHexagonGrid(){
 function drawPlayers(){
   for(let g of guests) { 
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
+
     
     // console.log("playerHasSpawned!");
    
@@ -182,6 +178,7 @@ function checkCollisions(playerX, playerY){
 
 }
 function updatePlayer(){
+  my.player.display();
   my.player.update();
 }
 
