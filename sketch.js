@@ -12,7 +12,7 @@
 // sprites from https://www.spriters-resource.com/mobile/mergefellas/asset/279334/ 
 
 
-const SPEED = 5;
+const SPEED = 7;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
@@ -55,14 +55,10 @@ class Player {
     this.color = theColor;
     this.direction  = direction;
     this.base = [];
-    this.trail = [];
-    this.outside = false;
+    this.trail = [25, 25];
+    this.outside = true;
     this.isAlive = false;
     
-  }
-  display(){
-    stroke(0);
-    fill(theColor);
   }
   update(){
     
@@ -75,12 +71,33 @@ class Player {
     }
     let v = createVector(this.x, this.y);
     if (this.outside){
-      this.trail.push(v);
-      if(this.history.length > 25){
-        this.history.splice(0, 1);
+      this.trail.push(v); 
+      if(this.trail.length > 25){
+        this.trail.splice(0, 1);
       }
     }
-    
+    else{
+      
+    }
+  }
+  display(){
+    stroke(0);
+    fill(theColor);
+    noStroke();
+    beginShape();
+    vertex(this.x - 75, this.y - 75);
+    vertex(this.x - 75, this.y + 75);
+    vertex(this.x + 75, this.y + 75);
+    vertex(this.x + 75, this.y -75);
+    endShape(CLOSE);
+
+    for (let i = 0; i < this.trail.length; i++){
+      fill("red");
+      let pos = this.trail[i];
+      rectMode(CENTER);
+      square(pos.x , pos.y +25, 20, 20);
+    }
+
   }
   territory(){
   }
@@ -113,8 +130,6 @@ function draw() {
   botMovement();
   homeScreenOverlay();
   gameState();
-  
- 
 }
 
 function botMovement(){
