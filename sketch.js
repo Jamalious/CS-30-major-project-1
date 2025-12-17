@@ -26,7 +26,7 @@ let startButton;
 let timer;
 let bot;
 let playerSprite;
-theColor =["red", "blue", "green", "orange", "yellow"];
+theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
@@ -46,13 +46,13 @@ function preload(){
 
 
 class Player {
-  constructor(x, y, dx, dy, theColor, direction,base){
+  constructor(x, y, dx, dy, direction,base){
     this.x = x;
     this.y = y;
     this.dx = dx;
     this.dy = dy;
     this.id = Math.floor(Math.random()* 1000);
-    this.color = theColor;
+    this.color = random(theColor);
     this.direction  = direction;
     this.base = [];
     this.trail = [25, 25];
@@ -76,30 +76,16 @@ class Player {
         this.trail.splice(0, 1);
       }
     }
-    else{
-      
-    }
   }
-  display(){
+  territory(){
     stroke(0);
-    fill(theColor);
     noStroke();
-    beginShape();
-    vertex(this.x - 75, this.y - 75);
-    vertex(this.x - 75, this.y + 75);
-    vertex(this.x + 75, this.y + 75);
-    vertex(this.x + 75, this.y -75);
-    endShape(CLOSE);
-
     for (let i = 0; i < this.trail.length; i++){
-      fill("red");
+      fill(this.color);
       let pos = this.trail[i];
       rectMode(CENTER);
       square(pos.x , pos.y +25, 20, 20);
     }
-
-  }
-  territory(){
   }
 }
 function setup() {
@@ -181,6 +167,17 @@ function drawHexagonGrid(){
 }
 function drawPlayers(){
   for(let g of guests) { 
+    noStroke();
+    beginShape();
+    fill(g.player.color);
+    vertex(g.player.x - 75, g.player.y - 75);
+    vertex(g.player.x - 75, g.player.y + 75);
+    vertex(g.player.x + 75, g.player.y + 75);
+    vertex(g.player.x+ 75, g.player.y -75);
+    endShape(CLOSE);
+    
+    
+    
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
 
     
@@ -193,8 +190,8 @@ function checkCollisions(playerX, playerY){
 
 }
 function updatePlayer(){
-  my.player.display();
   my.player.update();
+  my.player.territory();
 }
 
 //disc room clone input functions
