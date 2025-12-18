@@ -26,6 +26,8 @@ let startButton;
 let timer;
 let bot;
 let playerSprite;
+let startX = [];
+let startY = [];
 theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
@@ -55,7 +57,7 @@ class Player {
     this.color = random(theColor);
     this.direction  = direction;
     this.base = [];
-    this.trail = [25, 25];
+    this.trail = [];
     this.outside = true;
     this.isAlive = false;
     
@@ -81,7 +83,7 @@ class Player {
     stroke(0);
     noStroke();
     for (let i = 0; i < this.trail.length; i++){
-      fill(this.color);
+      
       let pos = this.trail[i];
       rectMode(CENTER);
       square(pos.x , pos.y +25, 20, 20);
@@ -128,8 +130,7 @@ function homeScreenOverlay(){
   startButton.style("background-color", "blue");
   startButton.style('width',  '150px');
   startButton.style('height', '50px');
-  startButton.mousePressed(gameState);
-  
+  startButton.mousePressed(gameState); 
   
 }
 function gameState(){
@@ -166,14 +167,19 @@ function drawHexagonGrid(){
 
 }
 function drawPlayers(){
-  for(let g of guests) { 
+  for(let g of guests) {
+    startX = g.player.x;
+    startY = g.player.y;
     noStroke();
     beginShape();
     fill(g.player.color);
-    vertex(g.player.x - 75, g.player.y - 75);
-    vertex(g.player.x - 75, g.player.y + 75);
-    vertex(g.player.x + 75, g.player.y + 75);
-    vertex(g.player.x+ 75, g.player.y -75);
+    if(g.player.isAlive){
+    
+    }
+    vertex(startX - 75, startY - 75);
+    vertex(startX- 75, startY + 75);
+    vertex(startX + 75, startY + 75);
+    vertex(startX+ 75, startY-75);
     endShape(CLOSE);
     
     
