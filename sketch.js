@@ -16,6 +16,9 @@ const SPEED = 7;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
+const CELLSIZE = 20;
+const PLAYER = 5;
+const TERRITORY = 1;
 let shared, guests, my;
 let test;
 let players = [];
@@ -25,9 +28,13 @@ let hexagonRadius = 30;
 let startButton;
 let timer;
 let bot;
+let grid;
+let cols; 
+let rows;
 let playerSprite;
 let startX = [];
 let startY = [];
+
 theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
@@ -48,7 +55,7 @@ function preload(){
 
 
 class Player {
-  constructor(x, y, dx, dy, direction,base){
+  constructor(x, y, dx, dy, direction,base,){
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -88,12 +95,22 @@ class Player {
       rectMode(CENTER);
       square(pos.x , pos.y +25, 20, 20);
     }
+    for(let i  = 0; i < this.startY; i++){
+
+    }
+  }
+  // updating + calculating each players base size
+  area(){
+    // how to access "area" parameter in gridOutput???
   }
 }
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
   my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
+  grid = generateRandomGrid(cols, rows);
+
+  grid[my.player.y][my.player.x] = PLAYER;
 
   //if (!shared.guests){
   //  shared.players = {};
@@ -106,6 +123,7 @@ function setup() {
     partySetShared(shared, {timer: 0});
 
   }
+  gridOutput(LABEL);
 
 }
 
@@ -136,7 +154,7 @@ function homeScreenOverlay(){
 function gameState(){
   my.player.isAlive = !my.player.isAlive;
   startButton.hide();
- 
+
 }
 
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
@@ -164,7 +182,6 @@ function drawHexagonGrid(){
       hexagonGrid(x + X_OFFSET, y + Y_OFFSET, hexagonRadius * 0.9);
     }
   }
-
 }
 function drawPlayers(){
   for(let g of guests) {
@@ -181,9 +198,7 @@ function drawPlayers(){
     vertex(startX + 75, startY + 75);
     vertex(startX+ 75, startY-75);
     endShape(CLOSE);
-    
-    
-    
+
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
 
     
@@ -192,9 +207,50 @@ function drawPlayers(){
   }
 }
 
-function checkCollisions(playerX, playerY){
+function checkCollisions(playerX, playerY, guestX, guestY){
+  playerX = my.player.x;
+  playerY  = my.player.y;
+  guestX = g.player.x;
+  guestY  = g.player.y;
+}
+
+function leaderboard(){
+  for(let g of guests){
+    leaderboard.push([]);
+  }
+  for (let g of guests){
+    leaderboard.push(my.player.area);
+  }
+  let count = leaderboard.length();
+  leaderboard = sort(leaderboard, count);
 
 }
+
+function generateTerritory(cols, rows) {
+  let newGrid = [];
+  for (let y = 0; y < rows; y++) {
+    newGrid.push([]);
+    for (let x = 0; x < cols; x++) {
+      newGrid[y].push(TERRITORY);
+    }
+  }
+  return newGrid;
+}
+
+function displayTerritory(cols, rows){
+  for (let g of guests){
+    for(let y = 0; y < cols; y++){
+      for(let x = 0; x < rows; x++){
+        if ( grid[y][x] === TERRITORY ){
+          rect(g.player.x * CELLSIZE, g.player.y * CELLSIZE, CELLSIZE);
+        }
+      }
+    }
+  }
+}
+function playerMovement(cols, rows){
+}
+
 function updatePlayer(){
   my.player.update();
   my.player.territory();
