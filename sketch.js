@@ -35,7 +35,7 @@ let playerSprite;
 let startX = [];
 let startY = [];
 
-theColor = ["red", "blue", "green", "orange", "yellow"];
+let theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
@@ -214,13 +214,18 @@ function checkCollisions(playerX, playerY, guestX, guestY){
   guestY  = g.player.y;
 }
 
-function leaderboard(){
+function gameLeaderboard(){
   for(let g of guests){
-    leaderboard.push([]);
+    let leaderboard = [];
+    leaderboard.push(g.player.area);
+    
   }
-  for (let g of guests){
-    leaderboard.push(my.player.area);
+  for (let i = 0; i < leaderboard.length; i++){
+    let entry = leaderboard[i];
+    let rank = i + 1;
+    let display = 
   }
+
   let count = leaderboard.length();
   leaderboard = sort(leaderboard, count);
 
