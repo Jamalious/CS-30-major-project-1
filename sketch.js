@@ -50,12 +50,10 @@ function preload(){
   });
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
-  
 }
 
-
 class Player {
-  constructor(x, y, dx, dy, direction,base,){
+  constructor(x, y, dx, dy, direction, base){
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -65,6 +63,7 @@ class Player {
     this.direction  = direction;
     this.base = [];
     this.trail = [];
+    this.killstreak = 0;
     this.outside = true;
     this.isAlive = false;
     
@@ -77,13 +76,14 @@ class Player {
       this.dy = lerp(this.dy, i.y * SPEED, 0.1);
       this.x += this.dx;
       this.y += this.dy;
-    }
-    let v = createVector(this.x, this.y);
-    if (this.outside){
-      this.trail.push(v); 
-      if(this.trail.length > 25){
-        this.trail.splice(0, 1);
+      let v = createVector(this.x, this.y);
+      if (this.outside){
+        this.trail.push(v); 
+        if(this.trail.length > 25){
+          this.trail.splice(0, 1);
+        }
       }
+      
     }
   }
   territory(){
@@ -98,6 +98,7 @@ class Player {
     for(let i  = 0; i < this.startY; i++){
 
     }
+
   }
   // updating + calculating each players base size
   area(){
@@ -223,7 +224,8 @@ function gameLeaderboard(){
   for (let i = 0; i < leaderboard.length; i++){
     let entry = leaderboard[i];
     let rank = i + 1;
-    let display = 
+    let display = rank + "." + entry.name + ":" + entry.score; 
+    text(display, LDB_POS, startY + i * spacing);
   }
 
   let count = leaderboard.length();
