@@ -137,6 +137,10 @@ function draw() {
   botMovement();
   homeScreenOverlay();
   gameState();
+  for (let g of guests){
+    createLeaderboardEntry(g.player.id, );
+
+  }
 }
 
 function botMovement(){
