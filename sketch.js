@@ -19,6 +19,8 @@ const B_SIZE = 50;
 const CELLSIZE = 20;
 const PLAYER = 5;
 const TERRITORY = 1;
+const EDGE = 8;
+const ENEMEY = 9;
 let shared, guests, my;
 let test;
 let players = [];
@@ -66,24 +68,24 @@ class Player {
     this.killstreak = 0;
     this.outside = true;
     this.isAlive = false;
+    this.killcount = 0;
     
   }
   update(){
-    
-    if(this.isAlive){
+    if (this.isAlive){
       let i = input();
       this.dx = lerp(this.dx, i.x * SPEED, 0.1);
       this.dy = lerp(this.dy, i.y * SPEED, 0.1);
       this.x += this.dx;
       this.y += this.dy;
       let v = createVector(this.x, this.y);
+
       if (this.outside){
         this.trail.push(v); 
         if(this.trail.length > 25){
           this.trail.splice(0, 1);
         }
-      }
-      
+      }  
     }
   }
   territory(){
@@ -96,9 +98,7 @@ class Player {
       square(pos.x , pos.y +25, 20, 20);
     }
     for(let i  = 0; i < this.startY; i++){
-
     }
-
   }
   // updating + calculating each players base size
   area(){
@@ -111,6 +111,7 @@ function setup() {
   my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
   grid = generateRandomGrid(cols, rows);
 
+  //put my player on the grid
   grid[my.player.y][my.player.x] = PLAYER;
 
   //if (!shared.guests){
@@ -125,7 +126,6 @@ function setup() {
 
   }
   gridOutput(LABEL);
-
 }
 
 function draw() {
@@ -259,14 +259,54 @@ function displayTerritory(cols, rows){
     }
   }
 }
-function playerMovement(cols, rows){
-}
+function captureTerritory(player){
+  for (let t of player.trail) {
+    shared.grid[t.y][t.x] = TERRITORY + my.player.id;
+    my.player.territory.push({x: t.x, y: t.y});
+  }
+  player.trail = [];
 
+}
 function updatePlayer(){
   my.player.update();
   my.player.territory();
 }
-
+function gameLogic(){
+  let newX = my.player.x;
+  let newY = my.player.y;
+  const cell = shared.grid[newX][newY];
+  // die if colliding with trail
+  if (cell === TRAIL){
+    my.player.isAlive = false;
+    return;
+  }
+  for(let g of guests.concat[my]){
+    if(g.trail && g.trail.some(t => t.x === newX && t.y === newY)){
+      g.player.isAlive = false;
+    }
+  }
+  for (let g of guests) {
+    if(!g.alive) {
+      continue;
+    }
+    // Checks if a guest has touched another person's trail
+    for (let g of guests.concat([my])) {
+      if (g.player.id === g.palyer.id || ! g.player.isAlive) {
+        continue;
+      }
+      for (let t of other.trail) {
+        if (g.player.x === t.x && g.player.y === t.player.y) {
+          g.player.alive = false;
+        }
+      }
+    }
+  }
+  const insideOwnTerritory = cell === TERRITORY + my.player.id;
+  if(!insideOwnTerritory) {
+    shared.grid[my.player.y][my.player.x] = TRAIL + my.player.id;
+    my.player.trail.push({x: my.player.x, y: my.player.y });
+  }
+}
 //disc room clone input functions
 function moveLeft(){
   return keyIsDown(LEFT_ARROW) || keyIsDown(65);
