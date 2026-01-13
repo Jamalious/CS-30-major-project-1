@@ -17,7 +17,7 @@ const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
 const CELLSIZE = 20;
-const PLAYER = 5;
+const PLAYER = 9;
 const TERRITORY = 1;
 const EDGE = 8;
 const ENEMEY = 9;
@@ -109,8 +109,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
   my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
-  grid = generateRandomGrid(cols, rows);
-
+  grid = generateGrid(cols, rows);
   //put my player on the grid
   grid[my.player.y][my.player.x] = PLAYER;
 
@@ -123,7 +122,7 @@ function setup() {
  
   if (partyIsHost){
     partySetShared(shared, {timer: 0});
-
+    grid = shared.grid;
   }
   gridOutput(LABEL);
 }
@@ -132,14 +131,19 @@ function draw() {
   translate(width/2 - my.player.x, height/2 - my.player.y);
   background(0);
   drawHexagonGrid();
+  displayGrid();
   drawPlayers();
   updatePlayer();
   botMovement();
   homeScreenOverlay();
   gameState();
+  drawMinimap();
   for (let g of guests){
     createLeaderboardEntry(g.player.id, );
 
+  }
+  for (let g of guests){
+    drawMinimap(g.player.x, g.player.y, g.player.territory);
   }
 }
 
@@ -237,7 +241,8 @@ function gameLeaderboard(){
 
 }
 
-function generateTerritory(cols, rows) {
+
+function generateGrid(cols, rows) {
   let newGrid = [];
   for (let y = 0; y < rows; y++) {
     newGrid.push([]);
@@ -248,7 +253,7 @@ function generateTerritory(cols, rows) {
   return newGrid;
 }
 
-function displayTerritory(cols, rows){
+function displayGrid(cols, rows){
   for (let g of guests){
     for(let y = 0; y < cols; y++){
       for(let x = 0; x < rows; x++){
@@ -307,6 +312,7 @@ function gameLogic(){
     my.player.trail.push({x: my.player.x, y: my.player.y });
   }
 }
+
 //disc room clone input functions
 function moveLeft(){
   return keyIsDown(LEFT_ARROW) || keyIsDown(65);
