@@ -57,7 +57,7 @@ function preload(){
 }
 
 class Player {
-  constructor(x, y, dx, dy, direction, base){
+  constructor(x, y, dx, dy, direction){
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -94,7 +94,6 @@ class Player {
     stroke(0);
     noStroke();
     for (let i = 0; i < this.trail.length; i++){
-      
       let pos = this.trail[i];
       rectMode(CENTER);
       square(pos.x , pos.y +25, 20, 20);
@@ -112,13 +111,14 @@ function setup() {
   imageMode(CENTER);
   cols = Math.floor(width/ CELL_SIZE);
   rows = Math.floor(height / CELL_SIZE);
-  let initX = floor(random(cols));
-  let initY = floor(random(rows));
-  my.player = new Player(initX, initY,0,0,0,0,0);
+  let initX = floor(random(1000));
+  let initY = floor(random(1000));
+  my.player = new Player(initX, initY,0,0,0,0);
   grid = generateGrid(cols, rows);
+  if (partyIsHost){
+    partySetShared(shared, {timer: 0});
+  }
   //put my player on the grid
-  grid[my.player.y][my.player.x] = PLAYER;
-
   //if (!shared.guests){
   //  shared.players = {};
   //}
@@ -126,11 +126,8 @@ function setup() {
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
  
-  if (partyIsHost){
-    partySetShared(shared, {timer: 0});
-    grid = shared.grid;
-  }
-  gridOutput(LABEL);
+ 
+  //gridOutput(LABEL);
 }
 
 function draw() {
@@ -141,11 +138,8 @@ function draw() {
   drawPlayers();
   updatePlayer();
   botMovement();
-  homeScreenOverlay();
-  gameState();
-  for (let g of guests){
-    drawMinimap(g.player.x, g.player.y, g.player.territory);
-  }
+  drawMinimap(my.player.x, my.player.y, my.player.territory);
+  
 }
 
 function botMovement(){
@@ -159,16 +153,13 @@ function homeScreenOverlay(){
   startButton.style('width',  '150px');
   startButton.style('height', '50px');
   startButton.mousePressed(gameState); 
-  
 }
 function gameState(){
-  my.player.isAlive = !my.player.isAlive;
-  startButton.hide();
-
+  my.player.isAlive = true;
 }
 function createGrid(cols, rows){
   let theGrid = [];
-  for (let y = 0; y < rows; y++) {
+  for (let y = 0; y < rows; y++){
     theGrid.push([]);
     for (let x = 0; x < cols; x++) {
       theGrid[y].push(OPEN_TILE);
@@ -193,8 +184,8 @@ function drawHexagonGrid(){
   const Y_OFFSET = hexagonRadius * sin(PI / 6) + hexagonRadius;
   const X_SPACE = 2 * X_OFFSET;
   const Y_SPACE = 2 * Y_OFFSET;
-  for (let y = 0; y < height; y += Y_SPACE) {
-    for (let x = 0; x < width; x += X_SPACE) {
+  for (let y = 0; y < windowHeight; y += Y_SPACE) {
+    for (let x = 0; x < windowWidth; x += X_SPACE) {
       stroke('pink');
       strokeWeight(7);
       strokeWeight(1);
@@ -203,6 +194,7 @@ function drawHexagonGrid(){
     }
   }
 }
+
 function drawPlayers(){
   for(let g of guests) {
     startX = g.player.x;
@@ -210,23 +202,18 @@ function drawPlayers(){
     noStroke();
     beginShape();
     fill(g.player.color);
-    if(g.player.isAlive){
-    
-    }
     vertex(startX - 75, startY - 75);
     vertex(startX- 75, startY + 75);
     vertex(startX + 75, startY + 75);
     vertex(startX+ 75, startY-75);
     endShape(CLOSE);
-
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
-
-    
-    // console.log("playerHasSpawned!");
    
   }
 }
-
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
 function checkCollisions(playerX, playerY, guestX, guestY){
   playerX = my.player.x;
   playerY  = my.player.y;
@@ -234,15 +221,12 @@ function checkCollisions(playerX, playerY, guestX, guestY){
   guestY  = g.player.y;
 }
 
-
-
-
 function generateGrid(cols, rows) {
   let newGrid = [];
   for (let y = 0; y < rows; y++) {
     newGrid.push([]);
     for (let x = 0; x < cols; x++) {
-      newGrid[y].push(TERRITORY);
+      newGrid[y].push(OPEN_TILE);
     }
   }
   return newGrid;
@@ -253,7 +237,7 @@ function displayGrid(cols, rows){
     for(let y = 0; y < cols; y++){
       for(let x = 0; x < rows; x++){
         if ( grid[y][x] === TERRITORY ){
-          rect(g.player.x * CELLSIZE, g.player.y * CELLSIZE, CELLSIZE);
+          rect(g.player.x * CELL_SIZE, g.player.y * CELL_SIZE, CELL_SIZE);
         }
       }
     }
@@ -269,12 +253,11 @@ function captureTerritory(player){
 }
 function updatePlayer(){
   my.player.update();
-  my.player.territory();
 }
 function gameLogic(){
   let newX = my.player.x;
   let newY = my.player.y;
-  const cell = shared.grid[newX][newY];
+  const cell = grid[newX][newY];
   // die if colliding with trail
   if (cell === TRAIL){
     my.player.isAlive = false;
@@ -286,9 +269,9 @@ function gameLogic(){
     }
   }
   for (let g of guests) {
-    if(!g.alive) {
-      continue;
-    }
+    ///if(!g.alive) {
+    //  //continue;
+    //}
     // Checks if a guest has touched another person's trail
     for (let g of guests.concat([my])) {
       if (g.player.id === g.palyer.id || ! g.player.isAlive) {
@@ -303,8 +286,8 @@ function gameLogic(){
   }
   const insideOwnTerritory = cell === TERRITORY + my.player.id;
   if(!insideOwnTerritory) {
-    shared.grid[my.player.y][my.player.x] = TRAIL + my.player.id;
-    my.player.trail.push({x: my.player.x, y: my.player.y });
+    //grid[my.player.y][my.player.x] = TRAIL + my.player.id;
+    // my.player.trail.push({x: my.player.x, y: my.player.y });
   }
 }
 
