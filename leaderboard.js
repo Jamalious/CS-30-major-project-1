@@ -18,3 +18,21 @@ const previousPlayerRank = (type, userId, position) => {
     prevPos = position;
   }
 };
+
+//function gameLeaderboard(){
+// // for(let g of guests){
+//  // let leaderboard = [];
+// // leaderboard.push(g.player.area);
+    
+// }
+//for (let i = 0; i < leaderboard.length; i++){
+// // let entry = leaderboard[i];
+//  // let rank = i + 1;
+// // let display = rank + "." + entry.name + ":" + entry.score; 
+// // text(display, LDB_POS, startY + i * spacing);
+// // }
+
+// // let count = leaderboard.length();
+// // leaderboard = sort(leaderboard, count);
+
+//}

@@ -16,11 +16,7 @@ const SPEED = 7;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
-<<<<<<< Updated upstream
-const CELLSIZE = 20;
-=======
 const CELL_SIZE = 20;
->>>>>>> Stashed changes
 const PLAYER = 9;
 const TERRITORY = 1;
 const EDGE = 8;
@@ -39,8 +35,9 @@ let grid;
 let cols; 
 let rows;
 let playerSprite;
-let startX = [];
-let startY = [];
+let startX;
+let startY;
+
 
 let theColor = ["red", "blue", "green", "orange", "yellow"];
 
@@ -115,13 +112,10 @@ function setup() {
   imageMode(CENTER);
   cols = Math.floor(width/ CELL_SIZE);
   rows = Math.floor(height / CELL_SIZE);
-  my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
-<<<<<<< Updated upstream
+  let initX = floor(random(cols));
+  let initY = floor(random(rows));
+  my.player = new Player(initX, initY,0,0,0,0,0);
   grid = generateGrid(cols, rows);
-=======
-  grid = createGrid(cols, rows);
-
->>>>>>> Stashed changes
   //put my player on the grid
   grid[my.player.y][my.player.x] = PLAYER;
 
@@ -149,11 +143,6 @@ function draw() {
   botMovement();
   homeScreenOverlay();
   gameState();
-  drawMinimap();
-  for (let g of guests){
-    createLeaderboardEntry(g.player.id, );
-
-  }
   for (let g of guests){
     drawMinimap(g.player.x, g.player.y, g.player.territory);
   }
@@ -245,23 +234,7 @@ function checkCollisions(playerX, playerY, guestX, guestY){
   guestY  = g.player.y;
 }
 
-function gameLeaderboard(){
-  for(let g of guests){
-    let leaderboard = [];
-    leaderboard.push(g.player.area);
-    
-  }
-  for (let i = 0; i < leaderboard.length; i++){
-    let entry = leaderboard[i];
-    let rank = i + 1;
-    let display = rank + "." + entry.name + ":" + entry.score; 
-    text(display, LDB_POS, startY + i * spacing);
-  }
 
-  let count = leaderboard.length();
-  leaderboard = sort(leaderboard, count);
-
-}
 
 
 function generateGrid(cols, rows) {

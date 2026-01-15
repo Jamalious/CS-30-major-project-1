@@ -30,14 +30,14 @@ function drawMinimap(px, py, territory){
   fill(0, 100); //shadow effect
   
   //drawing player territory on miniMap
-  map(territory.x, 0, windowWidth, miniMapWidth);
-  map(territory.y, 0, windowHeight, miniMapHeight);
+  map(territory.x, 0, windowWidth, 0, miniMapWidth);
+  map(territory.y, 0, windowHeight, 0, miniMapHeight);
  
   //drawing player position on miniMap
-  map(px, 0, windowWidth, miniMapWidth);
-  map(py, 0, windowHeight, miniMapHeight);  
+  map(px, 0, windowWidth, 0,  miniMapWidth);
+  map(py, 0, windowHeight, 0, miniMapHeight);  
  
   //
-  ellipse(playerX, playerY, 5, 5 );
+  ellipse(px, py, 5, 5 );
   pop();
 }
