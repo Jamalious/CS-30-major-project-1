@@ -16,11 +16,16 @@ const SPEED = 7;
 const PLAYER_SIZE = 50;
 const STARTING_BASE = 100;
 const B_SIZE = 50;
+<<<<<<< Updated upstream
 const CELLSIZE = 20;
+=======
+const CELL_SIZE = 20;
+>>>>>>> Stashed changes
 const PLAYER = 9;
 const TERRITORY = 1;
 const EDGE = 8;
 const ENEMEY = 9;
+const OPEN_TILE = 1;
 let shared, guests, my;
 let test;
 let players = [];
@@ -108,8 +113,15 @@ class Player {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
+  cols = Math.floor(width/ CELL_SIZE);
+  rows = Math.floor(height / CELL_SIZE);
   my.player = new Player(random(windowWidth),random(windowHeight),0,0,0,0,0);
+<<<<<<< Updated upstream
   grid = generateGrid(cols, rows);
+=======
+  grid = createGrid(cols, rows);
+
+>>>>>>> Stashed changes
   //put my player on the grid
   grid[my.player.y][my.player.x] = PLAYER;
 
@@ -164,6 +176,16 @@ function gameState(){
   my.player.isAlive = !my.player.isAlive;
   startButton.hide();
 
+}
+function createGrid(cols, rows){
+  let theGrid = [];
+  for (let y = 0; y < rows; y++) {
+    theGrid.push([]);
+    for (let x = 0; x < cols; x++) {
+      theGrid[y].push(OPEN_TILE);
+    }
+  }
+  return theGrid;
 }
 
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
