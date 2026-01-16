@@ -18,12 +18,12 @@ const STARTING_BASE = 3;
 const B_SIZE = 50;
 const CELL_SIZE = 20;
 const EDGE = 8;
-
 const OPEN_TILE = 0;
-const TERRITORY = 1;
-const TRAIL = 2;
-const WORLD_COLS = 200;
-const WORLD_ROWS = 200;
+// cannot use traditional 0, 1, 2 representation for grid because its multiplayer; territory must be differentiated for every player.
+const TERRITORY = 1000;
+const TRAIL = 2000;
+const WORLD_COLS = 75;
+const WORLD_ROWS = 75;
 let shared, guests, my;
 let test;
 let players = [];
@@ -39,6 +39,7 @@ let rows;
 let playerSprite;
 let startX;
 let startY;
+let spawned = false;
 
 
 let theColor = ["red", "blue", "green", "orange", "yellow"];
@@ -91,14 +92,14 @@ class Player {
       if ( gy < 0 || gy >= grid.length || gx < 0 || gx >= grid[0].length){
         return;
       } 
-      let cell = grid[gy][gy];
+      let cell = grid[gy][gx];
       if(cell === OPEN_TILE){
         this.outside = true;
-        grid[gy][gx] = TRAIL;
+        grid[gy][gx] = TRAIL + this.id;
         this.trail.push({x: gx, y: gy});
       }
 
-      if(cell === TERRITORY && this.outside){
+      if(cell === TERRITORY + this.id && this.outside){
         this.outside = false;
         captureTerritory(this);
       }
@@ -114,27 +115,35 @@ function setup() {
   imageMode(CENTER);
   cols = WORLD_COLS;
   rows = WORLD_ROWS;
-  let spawnGX = floor(random(STARTING_BASE, cols - STARTING_BASE));
-  let spawnGY = floor(random(STARTING_BASE, rows - STARTING_BASE));
-  grid = shared.grid;
-  while (!isAreaFree(spawnGX, spawnGY));
-  let initX = spawnGX * CELL_SIZE;
-  let initY = spawnGY * CELL_SIZE;
-  my.player = new Player(initX, initY,0,0,0,0);
-  initTerritory(my.player, spawnGX, spawnGY);
-
-
   if (partyIsHost){
-    partySetShared(shared, {timer: 0});
-    shared.grid = generateGrid(WORLD_COLS, WORLD_ROWS);
-    grid[gy][gx] = TERRITORY;
-    captureTerritory(my.player);
+    shared.grid = generateGrid(cols, rows);
+    shared.players = {};
   }
+  grid = shared.grid;
+  if(!grid){
+    return;
+  }
+  let gx, gy;
+  let attempts = 0;
+  do {
+    gx = floor(random(STARTING_BASE, cols - STARTING_BASE));
+    gy = floor(random(STARTING_BASE, rows - STARTING_BASE));
+  }
+  while (!isAreaFree(gx, gy));
+  let initX = gx * CELL_SIZE;
+  let initY = gy * CELL_SIZE;
+  my.player = new Player(initX, initY,0,0,0,0);
+  initTerritory(my.player.id, gx, gy) && attempts < 1000;
+  
+  shared.players[my.id] = {
+    id: my.player.id, 
+    spawn: hostSpawnPlayer(my.player.id)
+  };
   //put my player on the grid
   //if (!shared.guests){
   //  shared.players = {};
   //}
-  //shared.players[partyId] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
+  //shared.players[my.id] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
  
@@ -143,7 +152,14 @@ function setup() {
 }
 
 function draw() {
-  background(0);
+  if (!shared.grid){
+    return;
+  }
+  grid = shared.grid;
+  if(!spawned){
+    hostSpawnPlayer();
+    spawned = true;
+  }
   translate(width/2 - my.player.x, height/2 - my.player.y);
   background(0);
   displayGrid();
@@ -162,12 +178,7 @@ function isGridReady() {
   return grid && grid.length === rows && grid[0] !== null;
 
 }
-function initSpawnPlayer(){
-  if (!isGridReady()){
-    return false;
-  }
-  let gx, gy;
-}
+
 function homeScreenOverlay(){
   startButton = createButton("Play");
   startButton.position(width / 2, height / 2);
@@ -189,7 +200,49 @@ function createGrid(cols, rows){
   }
   return theGrid;
 }
+function drawGrid() {
+  for(let y = 0; y < rows; y++){
+    for (let x = 0; x < cols; x ++) {
+      let v = grid[y][x];
+      if (v >= TERRITORY){
+        let [r, g, b] = playerColor(ownerId);
+        fill(r, g, b, 150);
+      }
+      else if ( v >= TRAIL) {
+        fill(255);
+      }
+      else {
+        continue;
+      }
+    }
+    rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
+  }
+}
+function playerColor(id){
+  const colors = [[255, 0, 0], [0, 0, 255], [0, 255, 0], [255, 160, 60], [180, 80, 255]];
+  return colors[Math.abs(id) % colors.length];
+}
+function spawnPlayer() {
+  let gx, gy;
+  if (partyIsHost) {
+    do {
+      gx = floor(random(STARTING_BASE, cols - STARTING_BASE));
+      gy = floor(random(STARTING_BASE, rows - STARTING_BASE));
 
+    }
+    while(!isAreaFree(gx, gy));
+    initTerritory(my.player.id, gx, gy);
+
+    shared.players[my.id] = {
+      id: my.player.id,
+      gx, gy, 
+      kills: 0,
+      alive: true
+    };
+  }
+  let spawn = shared.players[my.id];
+  my.player = new Player(spawn.gx * CELL_SIZE, spawn.gy * CELL_SIZE);
+}
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
 function hexagonGrid(gridX, gridY, r){
   beginShape(LINES);
@@ -234,22 +287,37 @@ function isAreaFree(checkX, checkY) {
   }
   return true;
 }
-function initTerritory(player, centerGX, centerGY){
+function initTerritory(playerId, centerGX, centerGY){
   for ( let y = - STARTING_BASE; y <= STARTING_BASE; y++ ) {
     for ( let x = -STARTING_BASE; x <= STARTING_BASE; x++){
       let gx = centerGX + x;
       let gy = centerGY + y;
       if( gx >= 0 && gx < cols && gy >= 0 && gy < rows){
-        grid[gy][gx] = TERRITORY;
+        grid[centerGY + x][centerGX + x] = TERRITORY + playerId;
       }
     }
   }
-  player.outside = false;
+}
+function hostSpawnPlayer(playerId){
+  let gx, gy;
+  do {
+    gx = floor(random(STARTING_BASE, cols - STARTING_BASE));
+    gy = floor(random(STARTING_BASE, rows - STARTING_BASE));
+  }
+  while(!isAreaFree(gx, gy));
+  for ( let y = -STARTING_BASE; y <= STARTING_BASE; y++) {
+    for (let x = -STARTING_BASE; x <= STARTING_BASE; x++) {
+      let nx = gx + x;
+      let ny = gy + y;
+      grid[ny][nx] = TERRITORY + playerId;
+    }
+  }
+  return {gx, gy };
 }
 function drawPlayers(){
   for(let g of guests) {
-    startX = g.player.x;
-    startY = g.player.y;
+    
+    fill (playerColor(g.player.id));
     noStroke();
     // beginShape();
     //fill(g.player.color);
@@ -259,8 +327,9 @@ function drawPlayers(){
     //vertex(startX+ 75, startY-75);
     //endShape(CLOSE);
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
-   
   }
+  fill (playerColor(my.player.id));
+  image(soccerBrainrot, my.player.x, my.player.y, PLAYER_SIZE, PLAYER_SIZE);
 }
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
@@ -283,23 +352,30 @@ function generateGrid(cols, rows) {
   return newGrid;
 }
 
-function displayGrid(cols, rows){
-  for (let g of guests){
-    for(let y = 0; y < cols; y++){
-      for(let x = 0; x < rows; x++){
-        if ( grid[g.player.y][g.player.x] === TERRITORY ){
-          fill(60, 140, 255, 140);
-        }
-        else if (grid[g.player.y][g.player.x] === TRAIL){
-          fill(255);
-        }
-        else {
-          continue;
-        }
+function displayGrid(){
+  for(let y = 0; y < rows; y++){
+    for(let x = 0; x < cols; x++){
+      let v = grid[y][x];
+      if ( v === OPEN_TILE ){
+        continue;
       }
-      rect(g.player.x * CELL_SIZE, g.player.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-    }
-  }
+      let screenX = x * CELL_SIZE;
+      let screenY = y * CELL_SIZE;
+
+      if ( v >= TERRITORY){
+        let ownerId = v - TERRITORY;
+        let [r, g, b] = playerColor(ownerId);
+        fill(r, g, b, 150);
+      }
+      else if ( v >= TRAIL) {
+        let ownerId = v - TRAIL;
+        let [r, g, b] = playerColor(ownerId);
+        fill(r, g, b, 255);
+      }
+      noStroke();
+      rect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+    } 
+  } 
 }
 function captureTerritory(player){
   for(let g of guests){
@@ -338,6 +414,34 @@ function captureTerritory(player){
     player.trail = [];
   }
 }
+function checkKills(player, gx, gy) {
+  let cell = grid[gy][gx];
+  if ( cell >= TRAIL && cell < TERRITORY && cell !== TRAIL + player.id){
+    let victimId = cell - TRAIL;
+    killPlayer(victimId, player.id);
+  }
+}
+function killPlayer (victimId, killderId){
+  let victim = Object. values(shared.players.find(p => p.id === victimId));
+  if ( !victim || !victim.alive){
+    return;
+  }
+  victim.alive = false;
+  shared.players[killerId].kills++;
+  clearPlayerTrail(victimId);
+  Respawn(victimId);
+}
+
+function clearPlayerTrail(id){
+  for (let y = 0; y < rows; y ++ ) {
+    for ( let x = 0; x < cols; x++) {
+      if (grid[y][x] === TRAIL + id ) {
+        grid[y][x] = OPEN_TILE;
+      }
+    }
+  }
+}
+
 
 function floodfill(startX, startY, isVisited){
   let toFill = [];
