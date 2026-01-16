@@ -124,7 +124,6 @@ function setup() {
     return;
   }
   let gx, gy;
-  let attempts = 0;
   do {
     gx = floor(random(STARTING_BASE, cols - STARTING_BASE));
     gy = floor(random(STARTING_BASE, rows - STARTING_BASE));
@@ -133,7 +132,7 @@ function setup() {
   let initX = gx * CELL_SIZE;
   let initY = gy * CELL_SIZE;
   my.player = new Player(initX, initY,0,0,0,0);
-  initTerritory(my.player.id, gx, gy) && attempts < 1000;
+  initTerritory(my.player.id, gx, gy);
   
   shared.players[my.id] = {
     id: my.player.id, 
@@ -241,7 +240,7 @@ function spawnPlayer() {
     };
   }
   let spawn = shared.players[my.id];
-  my.player = new Player(spawn.gx * CELL_SIZE, spawn.gy * CELL_SIZE);
+  
 }
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
 function hexagonGrid(gridX, gridY, r){
@@ -404,12 +403,12 @@ function captureTerritory(player){
     for(let y = 0; y < rows; y++){
       for(let x = 0; x < cols; x++){
         if(grid[y][x] === OPEN_TILE && !isVisited[y][x]) {
-          grid[y][x] = TERRITORY;
+          grid[y][x] = TERRITORY + player.id;
         }
       }
     }
     for( let t of g.player.trail){
-      grid[t.y][t.x] = TERRITORY;
+      grid[t.y][t.x] = TERRITORY +player.id;
     }
     player.trail = [];
   }
