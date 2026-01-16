@@ -48,8 +48,6 @@ function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
   crocoBrainrot = loadImage("crocodile-brainrot.jpg");
   //soccerAni = loadAni("soccer-brainrot.jpg", 1, 8);
-  
-  
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
@@ -124,6 +122,7 @@ function setup() {
     return;
   }
   let gx, gy;
+  
   do {
     gx = floor(random(STARTING_BASE, cols - STARTING_BASE));
     gy = floor(random(STARTING_BASE, rows - STARTING_BASE));
@@ -240,7 +239,7 @@ function spawnPlayer() {
     };
   }
   let spawn = shared.players[my.id];
-  
+  my.player = new Player(spawn.gx * CELL_SIZE, spawn.gy * CELL_SIZE);
 }
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
 function hexagonGrid(gridX, gridY, r){
@@ -366,7 +365,7 @@ function displayGrid(){
         let [r, g, b] = playerColor(ownerId);
         fill(r, g, b, 150);
       }
-      else if ( v >= TRAIL) {
+      else if ( v >= TRAIL && v <= TERRITORY) {
         let ownerId = v - TRAIL;
         let [r, g, b] = playerColor(ownerId);
         fill(r, g, b, 255);
