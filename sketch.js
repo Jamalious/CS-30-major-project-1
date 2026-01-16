@@ -14,14 +14,16 @@
 
 const SPEED = 7;
 const PLAYER_SIZE = 50;
-const STARTING_BASE = 100;
+const STARTING_BASE = 3;
 const B_SIZE = 50;
 const CELL_SIZE = 20;
-const PLAYER = 9;
-const TERRITORY = 1;
 const EDGE = 8;
-const ENEMEY = 9;
-const OPEN_TILE = 1;
+
+const OPEN_TILE = 0;
+const TERRITORY = 1;
+const TRAIL = 2;
+const WORLD_COLS = 200;
+const WORLD_ROWS = 200;
 let shared, guests, my;
 let test;
 let players = [];
@@ -50,12 +52,18 @@ function preload(){
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
+    grid: null
     
   });
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
 }
-
+function worldGrid(x, y){
+  return {
+    gx: Math.floor(x / CELL_SIZE),
+    gy: Math.floor(y / CELL_SIZE)
+  };
+}
 class Player {
   constructor(x, y, dx, dy, direction){
     this.x = x;
@@ -65,13 +73,11 @@ class Player {
     this.id = Math.floor(Math.random()* 1000);
     this.color = random(theColor);
     this.direction  = direction;
-    this.base = [];
     this.trail = [];
     this.killstreak = 0;
     this.outside = true;
-    this.isAlive = false;
+    this.isAlive = true;
     this.killcount = 0;
-    
   }
   update(){
     if (this.isAlive){
@@ -80,43 +86,49 @@ class Player {
       this.dy = lerp(this.dy, i.y * SPEED, 0.1);
       this.x += this.dx;
       this.y += this.dy;
-      let v = createVector(this.x, this.y);
+      let { gx, gy} = worldGrid(this.x, this.y);
+      
+      if ( gy < 0 || gy >= grid.length || gx < 0 || gx >= grid[0].length){
+        return;
+      } 
+      let cell = grid[gy][gy];
+      if(cell === OPEN_TILE){
+        this.outside = true;
+        grid[gy][gx] = TRAIL;
+        this.trail.push({x: gx, y: gy});
+      }
 
-      if (this.outside){
-        this.trail.push(v); 
-        if(this.trail.length > 25){
-          this.trail.splice(0, 1);
-        }
-      }  
+      if(cell === TERRITORY && this.outside){
+        this.outside = false;
+        captureTerritory(this);
+      }
     }
   }
   territory(){
     stroke(0);
     noStroke();
-    for (let i = 0; i < this.trail.length; i++){
-      let pos = this.trail[i];
-      rectMode(CENTER);
-      square(pos.x , pos.y +25, 20, 20);
-    }
-    for(let i  = 0; i < this.startY; i++){
-    }
-  }
-  // updating + calculating each players base size
-  area(){
-    // how to access "area" parameter in gridOutput???
   }
 }
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CENTER);
-  cols = Math.floor(width/ CELL_SIZE);
-  rows = Math.floor(height / CELL_SIZE);
-  let initX = floor(random(1000));
-  let initY = floor(random(1000));
+  cols = WORLD_COLS;
+  rows = WORLD_ROWS;
+  let spawnGX = floor(random(STARTING_BASE, cols - STARTING_BASE));
+  let spawnGY = floor(random(STARTING_BASE, rows - STARTING_BASE));
+  grid = shared.grid;
+  while (!isAreaFree(spawnGX, spawnGY));
+  let initX = spawnGX * CELL_SIZE;
+  let initY = spawnGY * CELL_SIZE;
   my.player = new Player(initX, initY,0,0,0,0);
-  grid = generateGrid(cols, rows);
+  initTerritory(my.player, spawnGX, spawnGY);
+
+
   if (partyIsHost){
     partySetShared(shared, {timer: 0});
+    shared.grid = generateGrid(WORLD_COLS, WORLD_ROWS);
+    grid[gy][gx] = TERRITORY;
+    captureTerritory(my.player);
   }
   //put my player on the grid
   //if (!shared.guests){
@@ -131,20 +143,30 @@ function setup() {
 }
 
 function draw() {
+  background(0);
   translate(width/2 - my.player.x, height/2 - my.player.y);
   background(0);
-  drawHexagonGrid();
   displayGrid();
-  drawPlayers();
+  drawHexagonGrid();
   updatePlayer();
+  drawPlayers();
   botMovement();
   drawMinimap(my.player.x, my.player.y, my.player.territory);
-  
 }
 
 function botMovement(){
   //move bot 10% of distance to the player every draw call
   //bot.moveTowards(g.player.x, g.player.y, 0.10);
+}
+function isGridReady() {
+  return grid && grid.length === rows && grid[0] !== null;
+
+}
+function initSpawnPlayer(){
+  if (!isGridReady()){
+    return false;
+  }
+  let gx, gy;
 }
 function homeScreenOverlay(){
   startButton = createButton("Play");
@@ -194,19 +216,48 @@ function drawHexagonGrid(){
     }
   }
 }
-
+function isAreaFree(checkX, checkY) {
+  if(!grid){
+    return false;
+  }
+  for ( let y = - STARTING_BASE; y <= STARTING_BASE; y++ ) {
+    for ( let x = -STARTING_BASE; x <= STARTING_BASE; x++){
+      let gx = checkX + x;
+      let gy = checkY + y;
+      if (gx < 0 || gx >= cols || gy < 0 || gy >= rows || !grid[gy]){
+        return false;
+      }
+      if (grid[gy][gx] !== OPEN_TILE){
+        return false;
+      }
+    }
+  }
+  return true;
+}
+function initTerritory(player, centerGX, centerGY){
+  for ( let y = - STARTING_BASE; y <= STARTING_BASE; y++ ) {
+    for ( let x = -STARTING_BASE; x <= STARTING_BASE; x++){
+      let gx = centerGX + x;
+      let gy = centerGY + y;
+      if( gx >= 0 && gx < cols && gy >= 0 && gy < rows){
+        grid[gy][gx] = TERRITORY;
+      }
+    }
+  }
+  player.outside = false;
+}
 function drawPlayers(){
   for(let g of guests) {
     startX = g.player.x;
     startY = g.player.y;
     noStroke();
-    beginShape();
-    fill(g.player.color);
-    vertex(startX - 75, startY - 75);
-    vertex(startX- 75, startY + 75);
-    vertex(startX + 75, startY + 75);
-    vertex(startX+ 75, startY-75);
-    endShape(CLOSE);
+    // beginShape();
+    //fill(g.player.color);
+    //vertex(startX - 75, startY - 75);
+    //vertex(startX- 75, startY + 75);
+    //vertex(startX + 75, startY + 75);
+    //vertex(startX+ 75, startY-75);
+    //endShape(CLOSE);
     image(soccerBrainrot, g.player.x, g.player.y, PLAYER_SIZE, PLAYER_SIZE);
    
   }
@@ -236,59 +287,84 @@ function displayGrid(cols, rows){
   for (let g of guests){
     for(let y = 0; y < cols; y++){
       for(let x = 0; x < rows; x++){
-        if ( grid[y][x] === TERRITORY ){
-          rect(g.player.x * CELL_SIZE, g.player.y * CELL_SIZE, CELL_SIZE);
+        if ( grid[g.player.y][g.player.x] === TERRITORY ){
+          fill(60, 140, 255, 140);
+        }
+        else if (grid[g.player.y][g.player.x] === TRAIL){
+          fill(255);
+        }
+        else {
+          continue;
         }
       }
+      rect(g.player.x * CELL_SIZE, g.player.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
     }
   }
 }
 function captureTerritory(player){
-  for (let t of player.trail) {
-    shared.grid[t.y][t.x] = TERRITORY + my.player.id;
-    my.player.territory.push({x: t.x, y: t.y});
+  for(let g of guests){
+    for (let t of g.player.trail) {
+      grid[t.y][t.x] = TRAIL;
+    }
+    let isVisited = Array.from( {length: rows}, () =>
+      Array(cols).fill(false)
+    );
+    for(let x = 0; x < cols; x++){
+      if (grid[0][x] === OPEN_TILE){
+        floodfill(x, 0, isVisited);
+      }
+      if(grid[rows -1][x] === OPEN_TILE){
+        floodfill(x, rows - 1, isVisited);
+      }
+    }
+    for(let y = 0; y < rows; y++) {
+      if (grid[y][0] === OPEN_TILE){
+        floodfill(0, y, isVisited);
+      }
+      if(grid[y][cols - 1] === OPEN_TILE){
+        floodfill(cols - 1, y, isVisited);
+      }
+    }
+    for(let y = 0; y < rows; y++){
+      for(let x = 0; x < cols; x++){
+        if(grid[y][x] === OPEN_TILE && !isVisited[y][x]) {
+          grid[y][x] = TERRITORY;
+        }
+      }
+    }
+    for( let t of g.player.trail){
+      grid[t.y][t.x] = TERRITORY;
+    }
+    player.trail = [];
   }
-  player.trail = [];
+}
 
+function floodfill(startX, startY, isVisited){
+  let toFill = [];
+  toFill.push({x: startX, y: startY});
+  isVisited[startY][startX] = true;
+  while(toFill.length > 0) {
+    let { x, y } = toFill.shift();
+    let fillSpots = [
+      { x: x + 1, y},
+      {x: x - 1, y},
+      {x,  y: y + 1},
+      {x, y: y - 1},
+    ];
+    for( let f of fillSpots){
+      if ( f.x >= 0 && f.x < cols && f.y >= 0 && f.y < rows && !isVisited[f.y][f.x] && grid[f.y][f.x] === OPEN_TILE){
+        isVisited[f.y][f.x] = true;
+        toFill.push(f);
+      }
+    }
+  }
 }
 function updatePlayer(){
   my.player.update();
 }
+
 function gameLogic(){
-  let newX = my.player.x;
-  let newY = my.player.y;
-  const cell = grid[newX][newY];
-  // die if colliding with trail
-  if (cell === TRAIL){
-    my.player.isAlive = false;
-    return;
-  }
-  for(let g of guests.concat[my]){
-    if(g.trail && g.trail.some(t => t.x === newX && t.y === newY)){
-      g.player.isAlive = false;
-    }
-  }
-  for (let g of guests) {
-    ///if(!g.alive) {
-    //  //continue;
-    //}
-    // Checks if a guest has touched another person's trail
-    for (let g of guests.concat([my])) {
-      if (g.player.id === g.palyer.id || ! g.player.isAlive) {
-        continue;
-      }
-      for (let t of other.trail) {
-        if (g.player.x === t.x && g.player.y === t.player.y) {
-          g.player.alive = false;
-        }
-      }
-    }
-  }
-  const insideOwnTerritory = cell === TERRITORY + my.player.id;
-  if(!insideOwnTerritory) {
-    //grid[my.player.y][my.player.x] = TRAIL + my.player.id;
-    // my.player.trail.push({x: my.player.x, y: my.player.y });
-  }
+
 }
 
 //disc room clone input functions
