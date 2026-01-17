@@ -158,6 +158,25 @@ function setup() {
 
 function draw() {
   // Wait until party is connected
+  if (my && my.id){
+    my.lastSeen = millis();
+  }
+  if (!partyIsHost()){
+    let isGuest = guests.find(g => g.id === my.id);
+    if (isGuest){
+      isGuest.lastSeen = millis();
+    }
+  }
+  if (partyIsHost()){
+    for (let g of guests){
+      if (g.id){
+        g.lastSeen = millis();
+      }
+    }
+  }
+  if (partyIsHost() && !partyReady) {
+    becomeHost();
+  }
   if (!shared || !guests || !my) {
     background(0);
     fill(255);
@@ -170,15 +189,6 @@ function draw() {
   }
   if (!my){
     return;
-  }
-  if (my && my.id){
-    my.lastSeen = millis();
-  }
-  if (!partyIsHost()){
-    let isGuest = guests.find(g => g.id === my.id);
-    if (isGuest){
-      isGuest.lastSeen = millis();
-    }
   }
   if (!my.id){
     my.id = crypto.randomUUID();
@@ -195,6 +205,7 @@ function draw() {
     hostUpdatePlayers();
     updateLeaderboard();
     disconnectedPlayers();
+    updateLeaderboard();
 
   }
 
@@ -217,7 +228,6 @@ function draw() {
   drawPlayers();
   updatePlayer();
   drawHexagonGrid();
-  updateLeaderboard();
   drawLeaderboard();
   drawMinimap();
   playerKills();
@@ -233,7 +243,31 @@ function isGridReady() {
   return grid && grid.length === rows && grid[0] !== null;
 
 }
-
+function becomeHost() {
+  partyReady = true;
+  lastServerTick = millis();
+  if (!shared.grid) {
+    shared.grid = generateGrid(cols, rows);
+  }
+  if (!shared.players) {
+    shared.players = {};
+  }
+  if (!shared.trails) {
+    shared.trails = {};
+  }
+  if (!shared.leaderboard) {
+    shared.leaderboard = {};
+  }
+  if (!shared.spawnedIds) {
+    shared.spawnedIds = {};
+  }
+  hostPlayers = {};
+  for (let id in shared.players) {
+    let p = shared.players[id];
+    hostPlayers[id] = new Player(p.x, p.y, 0, 0, 0, p.gameId);
+    hostPlayers[id].outside = false;
+  }
+}
 function hostHandleSpawn() {
   if (!partyIsHost() || !shared.grid){
     return;
@@ -341,7 +375,8 @@ function hostSpawnPlayer(playerId) {
     alive: true,
     kills: 0,
     x: worldX,
-    y: worldY
+    y: worldY,
+    joinedAt: millis()
   };
   hostPlayers[playerId] = new Player(worldX, worldY, 0, 0, 0, gameId);
   hostPlayers[playerId].outside = false;
@@ -627,13 +662,25 @@ function disconnectedPlayers() {
   }
   let now = millis();
   let TIMEOUT = 5000;
+  let JOIN_GRACE = 4000;
 
   for (let playerId in shared.players){
     if (playerId === my.id){
       continue;
     }
+    let player = shared.players[playerId];
     let client = guests.find(g => g.id === playerId);
-    if (!client || now - client.lastSeen > TIMEOUT){
+    if (player.joinedAt && now - player.joinedAt < JOIN_GRACE){
+      continue;
+    }
+    if (!client){
+      hostRemovePlayer(playerId);
+      continue;
+    }
+    if (typeof client.lastSeen !== "number"){
+      continue;
+    }
+    if (now - client.lastSeen > TIMEOUT){
       hostRemovePlayer(playerId);
     }
   }
