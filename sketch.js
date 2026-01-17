@@ -26,6 +26,7 @@ const WORLD_COLS = 75;
 const WORLD_ROWS = 75;
 const MINIMAP_SIZE = 200;
 const MINIMAP_PADDING = 20;
+const SERVER_TICK_RATE = 100;
 let shared, guests, my;
 let test;
 let players = [];
@@ -45,6 +46,8 @@ let hostPlayers = {};
 let hostNextGameId = 1;
 let spawned = false;
 let partyReady = false;
+let lastServerTick = 0;
+
 
 let theColor = ["red", "blue", "green", "orange", "yellow"];
 
@@ -59,7 +62,8 @@ function preload(){
     players: {},
     leaderboard: {}, 
     nextGameId: 1,
-    trails: {}
+    trails: {},
+    spawnedIds: {}
   });
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
@@ -161,20 +165,37 @@ function draw() {
     textSize(32);
     text("Connecting to server", width / 2, height / 2);
   }
+  if (partyIsHost() && !my.spawnRequested && !shared.players?.[my.id]){
+    my.spawnRequested = true;
+  }
   if (!my){
     return;
   }
-  if (!my.id && Object.keys(my.length > 0)){
+  if (my && my.id){
+    my.lastSeen = millis();
+  }
+  if (!partyIsHost()){
+    let isGuest = guests.find(g => g.id === my.id);
+    if (isGuest){
+      isGuest.lastSeen = millis();
+    }
+  }
+  if (!my.id){
     my.id = crypto.randomUUID();
     my.spawnRequested = true;
     console.log("Assigned my.id:", my.id);
   }
   grid = shared.grid;
   if (partyIsHost()) {
+    let now = millis();
+    if (now - lastServerTick > SERVER_TICK_RATE){
+      lastServerTick = now;
+    }
     hostHandleSpawn();
     hostUpdatePlayers();
-    syncPlayer();
     updateLeaderboard();
+    disconnectedPlayers();
+
   }
 
   checkSpawn();
@@ -214,11 +235,13 @@ function isGridReady() {
 }
 
 function hostHandleSpawn() {
-  if (!partyIsHost()){
+  if (!partyIsHost() || !shared.grid){
     return;
   }
-  if (!shared.grid){
-    return;
+  // Host spawn
+  if ( my.id && my.spawnRequested && !shared.players[my.id]) {
+    hostSpawnPlayer(my.id);
+    my.spawnRequested = false;
   }
   for (let g of guests){
     if (!g.id){
@@ -231,6 +254,7 @@ function hostHandleSpawn() {
       continue;
     }
     hostSpawnPlayer(g.id);
+    g.spawnRequested = false;
   }
 }
 function homeScreenOverlay(){
@@ -281,7 +305,13 @@ function hostSpawnPlayer(playerId) {
   if (!partyIsHost()){
     return;
   }
+  if (!playerId){
+    return;
+  }
   if (shared.players[playerId]){
+    return;
+  }
+  if (shared.spawnedIds[playerId]){
     return;
   }
   if (!grid){
@@ -315,6 +345,11 @@ function hostSpawnPlayer(playerId) {
   };
   hostPlayers[playerId] = new Player(worldX, worldY, 0, 0, 0, gameId);
   hostPlayers[playerId].outside = false;
+  shared.spawnedIds[playerId] = true;
+  let guest = guests.find(g => g.id === playerId);
+  if (guest){
+    guest.spawnRequested = false;
+  }
   console.log("Spawned player", playerId, "with gameId", gameId);
 }
 function hostUpdatePlayers() {
@@ -322,15 +357,15 @@ function hostUpdatePlayers() {
   let iy = verticalMovement();
   ix = constrain(ix, -1, 1);
   iy = constrain(iy, -1, 1);
-  my.inputX = ix;
-  my.inputY = iy;
+  //my.inputX = ix;
+  //my.inputY = iy;
   if (!partyIsHost()){
     return;
   }
   for (let id in hostPlayers) {
     let simPlayer = hostPlayers[id];
     let netPlayer = shared.players[id];
-    let guest = guests.find(g => g.id === id);
+    let guest = guests.find(g => g.id === id) || my;
     if (!simPlayer || !netPlayer || !guest) {
       continue;
     }
@@ -562,12 +597,47 @@ function checkKills(player, gx, gy) {
     killPlayer(victimId, player.id);
   }
 }
+function killPlayer(playerId){
+  if (!partyIsHost()){
+    return;
+  }
+  hostRemovePlayer(playerId);
+}
 function hostRemovePlayer(playerId){
   if (!partyIsHost()){
     return;
   }
+  if (!shared.players[playerId]){
+    return;
+  }
+  let gameId = shared.players[playerId].gameId;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (grid[y][x] === TERRITORY + gameId || grid[y][x] === TRAIL + gameId){
+        grid[y][x] = OPEN_TILE;
+      }
+    }
+  }
+  delete hostPlayers[playerId];
+  delete shared.players[playerId];
 }
+function disconnectedPlayers() {
+  if (!partyIsHost()){
+    return;
+  }
+  let now = millis();
+  let TIMEOUT = 5000;
 
+  for (let playerId in shared.players){
+    if (playerId === my.id){
+      continue;
+    }
+    let client = guests.find(g => g.id === playerId);
+    if (!client || now - client.lastSeen > TIMEOUT){
+      hostRemovePlayer(playerId);
+    }
+  }
+}
 function clearPlayerTrail(id){
   if (!partyIsHost()){
     return;
