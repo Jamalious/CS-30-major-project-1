@@ -48,11 +48,13 @@ function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
   crocoBrainrot = loadImage("crocodile-brainrot.jpg");
   //soccerAni = loadAni("soccer-brainrot.jpg", 1, 8);
-  partyConnect("wss://deepstream-server-1.herokuapp.com","grid.io");
+  partyConnect("wss://deepstream-server-1.herokuapp.com","grid-room-1");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
-    grid: null
-    
+    grid: null,
+    players: {},
+    leaderboard: {},
+    nextGameId: 1, 
   });
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
@@ -119,10 +121,9 @@ function setup() {
   imageMode(CENTER);
   cols = WORLD_COLS;
   rows = WORLD_ROWS;
-  if (partyIsHost){
+  if (partyIsHost()){
     if (!shared.grid){
       shared.grid = generateGrid(cols, rows);
-      shared.players = {};
     }
   }
 
@@ -133,6 +134,7 @@ function setup() {
   //shared.players[my.id] = {x: playerSprite.x, y:playerSprite.y, color: 'blue'};
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
+  console.log("Am I host", partyIsHost());
  
  
   //gridOutput(LABEL);
@@ -145,9 +147,10 @@ function draw() {
   grid = shared.grid;
   if(!my.player){
     requestSpawn();
-    if (partyIsHost) {
+    if (partyIsHost()) {
       hostHandleSpawn();
       syncPlayer();
+      updateLeaderboard();
     }
     checkSpawn();
     return;
@@ -158,6 +161,9 @@ function draw() {
   drawHexagonGrid();
   updatePlayer();
   drawPlayers();
+  updateLeaderboard();
+  drawLeaderboard();
+  playerKills();
   botMovement();
   //drawMinimap(my.player.x, my.player.y, my.player.territory);
 }
@@ -171,16 +177,16 @@ function isGridReady() {
 
 }
 function requestSpawn() {
-  if (!my.spawnRequested && !my.player){
+  if (!my.spawnRequested){
     my.spawnRequested = true;
   }
 }
 function hostHandleSpawn() {
-  if (!partyIsHost){
+  if (!partyIsHost()){
     return;
   }
   for (let g of guests){
-    if (!shared.players[g.id] && g.spawnRequested) {
+    if (g.spawnRequested && !shared.players[g.id]) {
       hostSpawnPlayer(g.id);
     }
   }
@@ -230,7 +236,13 @@ function playerColor(id){
 }
 // only host can spawn player
 function hostSpawnPlayer(playerId) {
-  if (!grid || shared.players[playerId]){
+  if (!partyIsHost()){
+    return;
+  }
+  if (shared.players[playerId]){
+    return;
+  }
+  if (!grid){
     return;
   }
   let gx, gy;
@@ -245,7 +257,7 @@ function hostSpawnPlayer(playerId) {
   if (attempts >= MAX_ATTEMPTS) {
     return;
   }
-
+  // Team-based mode;
   let gameId = generateGameId();
   initTerritory(gameId, gx, gy);
 
@@ -274,22 +286,28 @@ function checkSpawn() {
 
 }
 function generateGameId() {
-  let id;
-  do {
-    id = Math.floor(Math.random() * 1000);
+  if (!partyIsHost()){
+    return null;
   }
-  while(Object.values(shared.players).some(p => p. gameId === id));
+  const id = shared.nextGameId;
+  shared.nextGameId++;
+  console.log("Issuing gameId:", id);
   return id;
-
+  // let id;
+  // do {
+  // id = Math.floor(Math.random() * 1000);
+  //}
+  //while(Object.values(shared.players).some(p => p.gameId === id));
+  //return id;
 }
 function syncPlayer() {
-  if (!partyIsHost){
+  if (!partyIsHost()){
     return;
   }
   for (let g of guests) {
-    if (shared.players[g.id]) {
+    if (shared.players[g.id] && typeof g.x === "number" && typeof g.y === "number") {
       shared.players[g.id].x = g.x;
-      shared.players[g.id].y = g.y
+      shared.players[g.id].y = g.y;
     }
   }
 }
@@ -338,7 +356,7 @@ function isAreaFree(checkX, checkY) {
   return true;
 }
 function initTerritory(playerId, centerGX, centerGY){
-  if (!partyIsHost){
+  if (!partyIsHost()){
     return;
   }
   for ( let y = - STARTING_BASE; y <= STARTING_BASE; y++ ) {
@@ -353,8 +371,17 @@ function initTerritory(playerId, centerGX, centerGY){
 }
 
 function drawPlayers(){
+  if (my.player){
+    image(soccerBrainrot, my.player.x, my.player.y, PLAYER_SIZE, PLAYER_SIZE);
+  }
   for(let id in shared.players) {
+    if ( id === my.id){
+      continue;
+    }
     let p = shared.players[id];
+    if (!p || typeof p.x, p.y !== "number"){
+      continue;
+    }
     let [r, g, b] = playerColor(p.gameId);
     fill (r, g, b);
     // beginShape();
@@ -478,7 +505,69 @@ function clearPlayerTrail(id){
   }
 }
 
+function calculateTerritoryScores() {
+  let scores = {};
+  for ( let id in shared.players){
+    let p = shared.players[id];
+    scores[p.gameId] = 0;
+  }
 
+  for(let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      let v = grid[y][x];
+      if (v>= TERRITORY) {
+        let ownerId = v - TERRITORY;
+        if (scores[ownerId] !== undefined) {
+          scores[ownerId]++;
+        }
+      }
+    }
+  }
+  return scores;
+}
+function updateLeaderboard() {
+  if (!partyIsHost()){
+    return;
+  }
+  shared.leaderboard = calculateTerritoryScores();
+}
+function drawLeaderboard() {
+  if (!shared.leaderboard){
+    return;
+  }
+  push();
+  resetMatrix();
+  textAlign(LEFT, TOP);
+  textSize(20);
+  fill(255);
+  //territory sorting;
+  let entries = Object.entries(shared.leaderboard).sort((a, b) => b[1] = a[1]); 
+  let x = 20;
+  let y = 20;
+  text("Territory Leaderboard", x, y);
+  y += 30;
+  for ( let i = 0; i < entries.length; i++) {
+    let [gameId, score] = entries[i];
+    let line = `${ i + 1}. Player ${gameId} - ${score} tiles`;
+    text(line, x, y);
+    y += 24;
+    pop();
+  }
+}
+function playerKills() {
+  //if (!my.player){
+  //  return;
+  // }
+  //push();
+  // resetMatrix();
+  //textAlign(RIGHT, TOP);
+  //textSize(20);
+  //fill(255);
+
+  //let kills = shared.players[my.id]?.kills || 0;
+  //text( `💀 Kills: ${kills}`, width - 20, 20);
+  //pop();
+}
 function floodfill(startX, startY, isVisited){
   let toFill = [];
   toFill.push({x: startX, y: startY});
