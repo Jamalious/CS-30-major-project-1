@@ -24,6 +24,8 @@ const TERRITORY = 1000;
 const TRAIL = 2000;
 const WORLD_COLS = 75;
 const WORLD_ROWS = 75;
+const MINIMAP_SIZE = 200;
+const MINIMAP_PADDING = 20;
 let shared, guests, my;
 let test;
 let players = [];
@@ -163,6 +165,7 @@ function draw() {
   drawPlayers();
   updateLeaderboard();
   drawLeaderboard();
+  drawMinimap();
   playerKills();
   botMovement();
   //drawMinimap(my.player.x, my.player.y, my.player.territory);
@@ -544,15 +547,15 @@ function drawLeaderboard() {
   let entries = Object.entries(shared.leaderboard).sort((a, b) => b[1] = a[1]); 
   let x = 20;
   let y = 20;
-  text("Territory Leaderboard", x, y);
+  text("Leaderboard", x, y);
   y += 30;
   for ( let i = 0; i < entries.length; i++) {
     let [gameId, score] = entries[i];
     let line = `${ i + 1}. Player ${gameId} - ${score} tiles`;
     text(line, x, y);
     y += 24;
-    pop();
   }
+  pop();
 }
 function playerKills() {
   //if (!my.player){
@@ -568,6 +571,71 @@ function playerKills() {
   //text( `💀 Kills: ${kills}`, width - 20, 20);
   //pop();
 }
+function drawMinimap() {
+  if (! grid || !shared.players){
+    return;
+  }
+  let mapSize = MINIMAP_SIZE;
+  let tileW = mapSize / cols;
+  let tileH = mapSize / rows;
+
+  let x0 = width - mapSize - MINIMAP_PADDING;
+  let y0 = MINIMAP_PADDING;
+  push();
+  resetMatrix();
+  translate(x0, y0);
+
+  //Background
+  noStroke();
+  fill(20, 200);
+  rect(0, 0, mapSize, mapSize, 10);
+
+  //Drawing the grid
+  for (let y = 0; y < rows; y++){
+    for (let x = 0; x < cols; x++) {
+      let v = grid[y][x];
+      if ( v === OPEN_TILE){
+        continue;
+      }
+      if (v >= TERRITORY) {
+        let ownerId = v - TERRITORY;
+        let [r, g, b] = playerColor(ownerId);
+        fill(r, g, b);
+      }
+      else if (v >= TRAIL) {
+        fill(255);
+      }
+      rect(x * tileW, y * tileH, tileW, tileH);
+    }
+  }
+  for (let id in shared.players) {
+    let p = shared.players[id];
+    if (!p) {
+      continue;
+    }
+    let px = p.x / (cols * CELL_SIZE) * mapSize;
+    let py = p.y / (rows * CELL_SIZE) * mapSize;
+    if (id === my.id ) {
+      fill(255);
+      stroke(0);
+      strokeWeight(2);
+      ellipse(px, py, 8, 8);
+    }
+    else {
+      let [r, g, b] = playerColor(p.gameId);
+      fill ( r, g, b);
+      noStroke();
+      ellipse(px, py, 6, 6,);
+    }
+  }
+  //Border 
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  rect(0, 0, mapSize, mapSize, 10);
+  pop();
+}
+
 function floodfill(startX, startY, isVisited){
   let toFill = [];
   toFill.push({x: startX, y: startY});
@@ -594,9 +662,6 @@ function updatePlayer(){
   my.y = my.player.y;
 }
 
-function gameLogic(){
-
-}
 
 //disc room clone input functions
 function moveLeft(){

@@ -24,20 +24,3 @@ class Minimap {
   }
 }
 
-function drawMinimap(px, py, territory){
-  push();
-  translate(miniMapX, miniMapY);
-  fill(0, 100); //shadow effect
-  
-  //drawing player territory on miniMap
-  map(territory.x, 0, windowWidth, 0, miniMapWidth);
-  map(territory.y, 0, windowHeight, 0, miniMapHeight);
- 
-  //drawing player position on miniMap
-  map(px, 0, windowWidth, 0,  miniMapWidth);
-  map(py, 0, windowHeight, 0, miniMapHeight);  
- 
-  //
-  ellipse(px, py, 5, 5 );
-  pop();
-}
