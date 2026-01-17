@@ -130,7 +130,7 @@ class Player {
 }
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  imageMode(CENTER);
+  imageMode(CORNER);
   cols = WORLD_COLS;
   rows = WORLD_ROWS;
   if (partyIsHost()){
@@ -161,11 +161,12 @@ function draw() {
     textSize(32);
     text("Connecting to server", width / 2, height / 2);
   }
-  if (!my.id){
+  if (!my){
+    return;
+  }
+  if (!my.id && Object.keys(my.length > 0)){
     my.id = crypto.randomUUID();
     my.spawnRequested = true;
-    my.x  = 0;
-    my.y = 0;
     console.log("Assigned my.id:", my.id);
   }
   grid = shared.grid;
@@ -186,11 +187,15 @@ function draw() {
     return;
   }
   background(0);
-  translate(width/2 - my.player.x, height/2 - my.player.y);
+  let me = shared.players[my.id];
+  if (!me){
+    return;
+  }
+  translate(width/2 - me.x, height/2 - me.y);
   displayGrid();
-  drawHexagonGrid();
-  updatePlayer();
   drawPlayers();
+  updatePlayer();
+  drawHexagonGrid();
   updateLeaderboard();
   drawLeaderboard();
   drawMinimap();
@@ -437,19 +442,18 @@ function initTerritory(gameId, centerGX, centerGY){
 }
 
 function drawPlayers(){
-  if (my.player){
-    image(soccerBrainrot, my.player.x, my.player.y, PLAYER_SIZE, PLAYER_SIZE);
-  }
+  noTint();
+  //if (my.player){
+  //  image(soccerBrainrot, my.player.x, my.player.y, PLAYER_SIZE, PLAYER_SIZE);
+  // }
   for(let id in shared.players) {
-    if ( id === my.id){
-      continue;
-    }
+    //if ( id === my.id){
+    //  continue;
+    //}
     let p = shared.players[id];
-    if (!p || typeof p.x !== "number" || p.y !== "number"){
+    if (!p || typeof p.x !== "number" || typeof p.y !== "number"){
       continue;
     }
-    let [r, g, b] = playerColor(p.gameId);
-    fill (r, g, b);
     // beginShape();
     //fill(g.player.color);
     //vertex(startX - 75, startY - 75);
@@ -457,7 +461,7 @@ function drawPlayers(){
     //vertex(startX + 75, startY + 75);
     //vertex(startX+ 75, startY-75);
     //endShape(CLOSE);
-    image(soccerBrainrot, p.x, p.y, PLAYER_SIZE, PLAYER_SIZE);
+    image(soccerBrainrot, p.x - PLAYER_SIZE / 2, p.y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
   }
 }
 function windowResized() {
@@ -556,6 +560,11 @@ function checkKills(player, gx, gy) {
   if ( cell >= TRAIL && cell < TERRITORY && cell !== TRAIL + player.gameId){
     let victimId = cell - TRAIL;
     killPlayer(victimId, player.id);
+  }
+}
+function hostRemovePlayer(playerId){
+  if (!partyIsHost()){
+    return;
   }
 }
 
