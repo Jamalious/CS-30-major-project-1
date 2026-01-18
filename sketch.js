@@ -49,6 +49,7 @@ let hostNextGameId = 1;
 let spawned = false;
 let partyReady = false;
 let lastServerTick = 0;
+let initHost = false;
 
 
 let theColor = ["red", "blue", "green", "orange", "yellow"];
@@ -89,6 +90,8 @@ class Player {
     this.killstreak = 0;
     this.outside = true;
     this.isAlive = true;
+    this.prevX = x;
+    this.prevY = y;
     this.killcount = 0;
   }
   update(ix, iy){
@@ -96,7 +99,10 @@ class Player {
       return;
     }
     if (this.isAlive){
-
+      this.prevX = this.x;
+      this.prevY = this.y;
+      let oldX = this.prevX;
+      let oldY = this.prevY;
       // Locking movement until an input is given. Although x, y, dx, dy are zero, lerp produces float movement so the player leaves base immediately 
 
       if (ix === 0 && iy === 0){
@@ -107,15 +113,20 @@ class Player {
       this.dy = lerp(this.dy, iy * SPEED, 0.1);
       this.x += this.dx;
       this.y += this.dy;
+      if (partyIsHost()){
+        if (checkLinekills(this, oldX, oldY, this.x, this.y)){
+          return;
+        }
+      }
       let { gx, gy} = worldGrid(this.x, this.y);
       
       if ( gy < 0 || gy >= grid.length || gx < 0 || gx >= grid[0].length){
         return;
       } 
       let cell = grid[gy][gx];
-      if (partyIsHost()) {
-        checkKills(this, gx, gy, cell);
-      }
+      //if (partyIsHost()) {
+      // //checkKills(this, cell);
+      //}
       if(cell === OPEN_TILE){
         this.outside = true;
 
@@ -198,9 +209,9 @@ function draw() {
     textSize(32);
     text("Connecting to server", width / 2, height / 2);
   }
-  if (partyIsHost() && !my.spawnRequested && !shared.players?.[my.id]){
-    my.spawnRequested = true;
-  }
+  //if (partyIsHost() && !my.spawnRequested && !shared.players?.[my.id]){
+  //// my.spawnRequested = true;
+  //}
   if (!my){
     return;
   }
@@ -212,12 +223,11 @@ function draw() {
   grid = shared.grid;
   if (partyIsHost()) {
     let now = millis();
-    if (now - lastServerTick > SERVER_TICK_RATE){
+    if (now - lastServerTick >= SERVER_TICK_RATE){
       lastServerTick = now;
     }
     hostHandleSpawn();
     hostUpdatePlayers();
-    updateLeaderboard();
     disconnectedPlayers();
     updateLeaderboard();
 
@@ -259,6 +269,10 @@ function isGridReady() {
 
 }
 function becomeHost() {
+  if (initHost){
+    return;
+  }
+  initHost = true;
   partyReady = true;
   lastServerTick = millis();
   if (!shared.grid) {
@@ -290,7 +304,6 @@ function hostHandleSpawn() {
   // Host spawn
   if ( my.id && my.spawnRequested && !shared.players[my.id]) {
     hostSpawnPlayer(my.id);
-    my.spawnRequested = false;
   }
   for (let g of guests){
     if (!g.id){
@@ -675,7 +688,7 @@ function captureTerritory(player){
   }
   shared.trails[player.gameId] = [];
 }
-function checkKills(player, gx, gy, cell) {
+function checkKills(player, cell) {
   if (!partyIsHost()){
     return;
   }
@@ -685,8 +698,37 @@ function checkKills(player, gx, gy, cell) {
     killPlayer(victimId, player.gameId);
   }
 }
+function checkLinekills(player, x1, y1, x2, y2) {
+  if (!partyIsHost()){
+    return;
+  }
+  let distance = dist(x1, y1, x2, y2);
+  let steps = ceil(distance) / CELL_SIZE * 0.4;
+
+  for (let i = 0; i <= steps; i++) {
+    let t = i / steps;
+    let sx = lerp (x1, x2, t);
+    let sy = lerp(y1, y2, t);
+    let {gx, gy} = worldGrid(sx, sy);
+    if (gx < 0 || gx >= cols || gy < 0 || gy >= rows){
+      continue;
+    }
+    let cell = grid[gy][gx];
+
+    if (cell >= TRAIL && cell < TERRITORY && cell !== TRAIL + player.gameId){
+      let victimGameId = cell - TRAIL;
+      killPlayer(victimGameId, player.gameId);
+      return true;
+    }
+  }
+  return false;
+}
 function killPlayer(victimGameId, killerGameId){
   if (!partyIsHost()){
+    return;
+  }
+  let victimId = Object.keys(shared.players).find(id => shared.players[id].gameId === victimGameId);
+  if (!victimId){
     return;
   }
   // Find the killer's id
@@ -696,7 +738,6 @@ function killPlayer(victimGameId, killerGameId){
       break;
     }
   }
-  let victimId = Object.keys(shared.players).find(id => shared.players[id].gameId === victimGameId);
   if (victimId){
     hostRemovePlayer(victimId);
   }
@@ -709,6 +750,8 @@ function hostRemovePlayer(playerId){
     return;
   }
   let gameId = shared.players[playerId].gameId;
+
+  //clearing the killed players data from the grid
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (grid[y][x] === TERRITORY + gameId || grid[y][x] === TRAIL + gameId){
@@ -716,6 +759,7 @@ function hostRemovePlayer(playerId){
       }
     }
   }
+  delete shared.trails[gameId];
   delete hostPlayers[playerId];
   delete shared.players[playerId];
 }
