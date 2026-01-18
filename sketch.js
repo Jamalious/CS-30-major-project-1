@@ -43,7 +43,7 @@ let shared, guests, my;
 let test;
 let players = [];
 let soccerBrainrot;
-let crocoBrainrot;
+//let crocoBrainrot;
 let hexagonRadius = 30;
 let grid;
 let cols; 
@@ -66,9 +66,8 @@ let theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
   soccerBrainrot = loadImage("soccer-brainrot.jpg");
-  crocoBrainrot = loadImage("crocodile-brainrot.jpg");
+  //crocoBrainrot = loadImage("crocodile-brainrot.jpg");
   captureSound = loadSound("capture.mp3");
-  //soccerAni = loadAni("soccer-brainrot.jpg", 1, 8);
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid-room-1");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
@@ -86,6 +85,7 @@ function preload(){
   guests = partyLoadGuestShareds();
   my = partyLoadMyShared();
 }
+
 //creating the world
 function worldGrid(x, y){
   return {
@@ -93,6 +93,7 @@ function worldGrid(x, y){
     gy: Math.floor(y / CELL_SIZE)
   };
 }
+
 class Player {
   constructor(x, y, dx, dy, direction, gameId){
     this.gameId = gameId;
@@ -145,11 +146,13 @@ class Player {
         this.boostEnergy -= 0.8;
         this.spawnBoostParticles();
       }
+
       //'smooth' player movement
       this.dx = lerp(this.dx, ix * speed, 0.1);
       this.dy = lerp(this.dy, iy * speed, 0.1);
       this.x += this.dx;
       this.y += this.dy;
+
       //applying boost risk factor/ territory drain;
       if (this.isBoosting && partyIsHost()) {
         drainTerritory(this.gameId, BOOST_DRAIN_RATE);
@@ -160,6 +163,7 @@ class Player {
           return;
         }
       }
+
       // identifying the player's position on the grid(open tile, territory, trail)
       let { gx, gy} = worldGrid(this.x, this.y);
       
@@ -167,7 +171,6 @@ class Player {
         return;
       } 
       let cell = grid[gy][gx];
-
       if(cell === OPEN_TILE){
         this.outside = true;
 
@@ -181,12 +184,14 @@ class Player {
         }
       }
 
+      //intialiizing territory capture
       if(cell === TERRITORY + this.gameId && this.outside){
         this.outside = false;
         if (partyIsHost()) {
           captureTerritory(this);
         }
       }
+
       // preventing player from exiting the grid
       this.x = constrain(this.x, PLAYER_SIZE /2, WORLD_WIDTH - PLAYER_SIZE / 2 );
       this.y = constrain(this.y, PLAYER_SIZE / 2, WORLD_HEIGHT - PLAYER_SIZE /2);
@@ -206,6 +211,7 @@ class Player {
       });
     }
   }
+
   drawParticles(){
     for (let i = this.particles.length -1; i >= 0; i--){
       let p = this.particles[i];
@@ -222,6 +228,7 @@ class Player {
     }
   }
 }
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CORNER);
@@ -348,7 +355,6 @@ function draw() {
   drawMatchTimer();
   drawMinimap();
   playerKills();
-  //drawMinimap(my.player.x, my.player.y, my.player.territory);
 }
 
 // ensuring the gridIsReady before spawning players into it
@@ -356,6 +362,7 @@ function isGridReady() {
   return grid && grid.length === rows && grid[0] !== null;
 
 }
+
 // ensuring that the host is properly reassigned to the the next player if the original host leaves
 function becomeHost() {
   if (initHost){
@@ -386,6 +393,7 @@ function becomeHost() {
     hostPlayers[id].outside = false;
   }
 }
+
 //ensuring the host handles all player spawns
 function hostHandleSpawn() {
   if (!partyIsHost() || !shared.grid){
@@ -410,6 +418,7 @@ function hostHandleSpawn() {
     g.spawnRequested = false;
   }
 }
+
 //displaying the edge of the grid
 function drawWorldBorder() {
   push();
@@ -522,6 +531,7 @@ function hostUpdatePlayers() {
     hostRemovePowerups();
   }
 }
+
 // checking for spawned players
 function checkSpawn() {
   let spawn = shared.players[my.id];
@@ -544,6 +554,7 @@ function generateGameId() {
   shared.nextGameId++;
   return id;
 }
+
 function syncPlayer() {
   if (!partyIsHost()){
     return;
@@ -650,6 +661,7 @@ function drawPlayers(){
     }
   }
 }
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
@@ -793,7 +805,7 @@ function drainTerritory(gameId, amount = 1){
   }
 }
 
-//
+//player collision with trail detection 
 function checkLinekills(player, x1, y1, x2, y2) {
   if (!partyIsHost()){
     return;
@@ -840,6 +852,7 @@ function killPlayer(victimGameId, killerGameId){
   }
 }
 
+//removing players, host controlled
 function hostRemovePlayer(playerId){
   if (!partyIsHost()){
     return;
@@ -862,6 +875,7 @@ function hostRemovePlayer(playerId){
   delete hostPlayers[playerId];
   delete shared.players[playerId];
 }
+
 //detecting if players have left the grid
 function disconnectedPlayers() {
   if (!partyIsHost()){
@@ -892,6 +906,7 @@ function disconnectedPlayers() {
     }
   }
 }
+
 // randomly spawning powerups throughout grid every 6 seconds
 function hostSpawnPowerups() {
   if (!partyIsHost()){
@@ -948,6 +963,7 @@ function hostCheckMatchTimer() {
     determineWinner();
   }
 }
+
 // determines player with the most territory
 function determineWinner() {
   let scores = calculateTerritoryScores();
@@ -977,6 +993,7 @@ function drawMatchTimer() {
   text(`Time Left: ${seconds}s`, width / 2, 20);
   pop();
 }
+
 //displays who won the game after timer runs out
 function drawWinnerScreen() {
   background(0);
@@ -1008,8 +1025,8 @@ function drawPowerups() {
     ellipse(px, py, CELL_SIZE * 0.6);
     drawingContext.shadowBlur = 0;
   }
-
 }
+
 //powerups are cleared off screen after 11 seconds
 function clearPowerups() {
   if (!partyIsHost()){
@@ -1040,6 +1057,7 @@ function calculateTerritoryScores() {
   }
   return scores;
 }
+
 // checking if player comes into contact with powerup
 function checkPowerup(player) {
   if (!shared.powerups) {
@@ -1061,6 +1079,7 @@ function checkPowerup(player) {
     }
   }
 }
+
 //ensuring powerUp works for the right player
 function applyPowerup(gameId, type) {
   if (!partyIsHost()){
@@ -1079,12 +1098,12 @@ function applyPowerup(gameId, type) {
     drainTerritory(gameId, 20);
   }
 }
+
 // increasing the player's territory when after it comes in contact with a powerup
 function growTerritory(gameId, min = 25, max = 75) {
   let added = 0;
   let amount = floor(random(min, max + 1));
   let area = [];
-
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (grid[y][x] === TERRITORY + gameId) {
@@ -1117,37 +1136,7 @@ function growTerritory(gameId, min = 25, max = 75) {
     }
   }
 }
-// updating the leaderboard as player's gain/lose territory
-function updateLeaderboard() {
-  if (!partyIsHost()){
-    return;
-  }
-  shared.leaderboard = calculateTerritoryScores();
-}
-//displaying the leaderboard
-function drawLeaderboard() {
-  if (!shared.leaderboard){
-    return;
-  }
-  push();
-  resetMatrix();
-  textAlign(LEFT, TOP);
-  textSize(20);
-  fill(255);
-  // Leaderboard sorts by total territory;
-  let entries = Object.entries(shared.leaderboard).sort((a, b) => b[1] - a[1]); 
-  let x = 20;
-  let y = 20;
-  text("Leaderboard", x, y);
-  y += 30;
-  for ( let i = 0; i < entries.length; i++) {
-    let [gameId, score] = entries[i];
-    let line = `${ i + 1}. Player ${gameId} - ${score} tiles`;
-    text(line, x, y);
-    y += 24;
-  }
-  pop();
-}
+
 function playerKills() {
   //if (!my.player){
   //  return;
@@ -1163,71 +1152,6 @@ function playerKills() {
   //pop();
 }
 
-function drawMinimap() {
-  if (! grid || !shared.players){
-    return;
-  }
-  let mapSize = MINIMAP_SIZE;
-  let tileW = mapSize / cols;
-  let tileH = mapSize / rows;
-
-  let x0 = width - mapSize - MINIMAP_PADDING;
-  let y0 = MINIMAP_PADDING;
-  push();
-  resetMatrix();
-  translate(x0, y0);
-
-  //Background
-  noStroke();
-  fill(20, 200);
-  rect(0, 0, mapSize, mapSize, 10);
-
-  //Drawing the big grid onto the miniMap
-  for (let y = 0; y < rows; y++){
-    for (let x = 0; x < cols; x++) {
-      let v = grid[y][x];
-      if ( v === OPEN_TILE){
-        continue;
-      }
-      if (v >= TERRITORY) {
-        let ownerId = v - TERRITORY;
-        let [r, g, b] = playerColor(ownerId);
-        fill(r, g, b);
-      }
-      else if (v >= TRAIL) {
-        fill(255);
-      }
-      rect(x * tileW, y * tileH, tileW, tileH);
-    }
-  }
-  for (let id in shared.players) {
-    //drawing players onto the minimaps
-    let p = shared.players[id];
-    if (!p) {
-      continue;
-    }
-    let px = p.x / (cols * CELL_SIZE) * mapSize;
-    let py = p.y / (rows * CELL_SIZE) * mapSize;
-    if (id === my.id ) {
-      fill(255);
-      stroke(0);
-      strokeWeight(2);
-      ellipse(px, py, 8, 8);
-    }
-    else {
-      let [r, g, b] = playerColor(p.gameId);
-      fill ( r, g, b);
-      noStroke();
-      ellipse(px, py, 6, 6,);
-    }
-  }
-  //Border 
-  noFill();
-  stroke(255);
-  strokeWeight(2);
-  rect(0, 0, mapSize, mapSize, 10);
-  pop();
-}
 // filling in territory after players create a closed loop
 function floodfill(startX, startY, isVisited){
   let toFill = [];
@@ -1249,6 +1173,7 @@ function floodfill(startX, startY, isVisited){
     }
   }
 }
+
 // glow effect when player successfully captures territory
 function drawTerritoryFlash(){
   if (!territoryFlashes || territoryFlashes.length === 0){
@@ -1298,6 +1223,7 @@ function drawBoostMeter(){
   text("BOOST", width /2, y - 10);
   pop();
 }
+
 // when player leaves territory, a circular trail surrounds them
 function drawPlayerGlow(x, y, size, r, g, b) {
   push();
@@ -1311,6 +1237,7 @@ function drawPlayerGlow(x, y, size, r, g, b) {
   drawingContext.restore();
   pop();
 }
+
 //player movement 
 function updatePlayer(){
   my.inputX = horizontalMovement();

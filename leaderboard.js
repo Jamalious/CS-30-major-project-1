@@ -1,38 +1,32 @@
-
-//live leaderboard
-const createLeaderboardEntry = async (userId, data)  => {
-  const {type, score} = data;
-  const{item} = {
-    userId: userId,
-    type: type,
-    highscore: score,
-    isDead: false,
-    joinDate: new Date().toISOString(),
-    endDate: new Date().toISOString(),
-  };
-};
-
-const previousPlayerRank = (type, userId, position) => {
-  let prevPos = position;
-  if(prevPos){
-    prevPos = position;
+// updating the leaderboard as player's gain/lose territory
+function updateLeaderboard() {
+  if (!partyIsHost()){
+    return;
   }
-};
+  shared.leaderboard = calculateTerritoryScores();
+}
 
-//function gameLeaderboard(){
-// // for(let g of guests){
-//  // let leaderboard = [];
-// // leaderboard.push(g.player.area);
-    
-// }
-//for (let i = 0; i < leaderboard.length; i++){
-// // let entry = leaderboard[i];
-//  // let rank = i + 1;
-// // let display = rank + "." + entry.name + ":" + entry.score; 
-// // text(display, LDB_POS, startY + i * spacing);
-// // }
-
-// // let count = leaderboard.length();
-// // leaderboard = sort(leaderboard, count);
-
-//}
+//displaying the leaderboard
+function drawLeaderboard() {
+  if (!shared.leaderboard){
+    return;
+  }
+  push();
+  resetMatrix();
+  textAlign(LEFT, TOP);
+  textSize(20);
+  fill(255);
+  // Leaderboard sorts by total territory;
+  let entries = Object.entries(shared.leaderboard).sort((a, b) => b[1] - a[1]); 
+  let x = 20;
+  let y = 20;
+  text("Leaderboard", x, y);
+  y += 30;
+  for ( let i = 0; i < entries.length; i++) {
+    let [gameId, score] = entries[i];
+    let line = `${ i + 1}. Player ${gameId} - ${score} tiles`;
+    text(line, x, y);
+    y += 24;
+  }
+  pop();
+}
