@@ -24,6 +24,8 @@ const TERRITORY = 1000;
 const TRAIL = 2000;
 const WORLD_COLS = 75;
 const WORLD_ROWS = 75;
+const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;
+const WORLD_HEIGHT = WORLD_ROWS * CELL_SIZE;
 const MINIMAP_SIZE = 200;
 const MINIMAP_PADDING = 20;
 const SERVER_TICK_RATE = 100;
@@ -90,6 +92,9 @@ class Player {
     this.killcount = 0;
   }
   update(ix, iy){
+    if (!this.isAlive){
+      return;
+    }
     if (this.isAlive){
 
       // Locking movement until an input is given. Although x, y, dx, dy are zero, lerp produces float movement so the player leaves base immediately 
@@ -97,6 +102,7 @@ class Player {
       if (ix === 0 && iy === 0){
         return;
       }
+
       this.dx = lerp(this.dx, ix * SPEED, 0.1);
       this.dy = lerp(this.dy, iy * SPEED, 0.1);
       this.x += this.dx;
@@ -107,6 +113,9 @@ class Player {
         return;
       } 
       let cell = grid[gy][gx];
+      if (partyIsHost()) {
+        checkKills(this, gx, gy, cell);
+      }
       if(cell === OPEN_TILE){
         this.outside = true;
 
@@ -125,6 +134,11 @@ class Player {
           captureTerritory(this);
         }
       }
+
+      this.x = constrain(this.x, PLAYER_SIZE /2, WORLD_WIDTH - PLAYER_SIZE / 2 );
+      this.y = constrain(this.y, PLAYER_SIZE / 2, WORLD_HEIGHT - PLAYER_SIZE /2);
+      gx = constrain(gx, 0, WORLD_COLS - 1);
+      gy = constrain(gy, 0, WORLD_ROWS - 1);
     }
   }
   territory(){
@@ -225,9 +239,10 @@ function draw() {
   }
   translate(width/2 - me.x, height/2 - me.y);
   displayGrid();
+  drawHexagonGrid();
   drawPlayers();
   updatePlayer();
-  drawHexagonGrid();
+  drawWorldBorder();
   drawLeaderboard();
   drawMinimap();
   playerKills();
@@ -329,6 +344,14 @@ function drawGrid() {
     }
     rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE);
   }
+}
+function drawWorldBorder() {
+  push();
+  noFill();
+  stroke(0, 200, 255);
+  strokeWeight(4);
+  rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+  pop();
 }
 function playerColor(id){
   const colors = [[255, 0, 0], [0, 0, 255], [0, 255, 0], [255, 160, 60], [180, 80, 255]];
@@ -453,30 +476,60 @@ function syncPlayer() {
   }
 }
 // grid design from https://editor.p5js.org/kybr/sketches/r_1FNQE5W;
-function hexagonGrid(gridX, gridY, r){
-  beginShape(LINES);
-  let angle = 2 * PI / 6 /2;
-  for (let i = 0; i < 6; i++) {
-    vertex(gridX + r * cos(angle), gridY + r * sin(angle));
-    angle += 2 * PI / 6;
-    vertex(gridX + r * cos(angle), gridY + r * sin(angle));
+function hexagonGrid(x, y, r){
+  beginShape();
+  for (let i = 0; i < 6; i ++) {
+    let a = PI /3 * i + PI /6;
+    vertex(x + cos(a) * r, y + sin(a) * r);
   }
-  endShape();
+  endShape(CLOSE);
+  //let angle = 2 * PI / 6 /2;
+  //for (let i = 0; i < 6; i++) {
+  //vertex(gridX + r * cos(angle), gridY + r * sin(angle));
+  //angle += 2 * PI / 6;
+  //vertex(gridX + r * cos(angle), gridY + r * sin(angle));
+  //}
+  //endShape();
 }
 function drawHexagonGrid(){
-  const X_OFFSET = hexagonRadius * cos(PI / 6);
-  const Y_OFFSET = hexagonRadius * sin(PI / 6) + hexagonRadius;
-  const X_SPACE = 2 * X_OFFSET;
-  const Y_SPACE = 2 * Y_OFFSET;
-  for (let y = 0; y < windowHeight; y += Y_SPACE) {
-    for (let x = 0; x < windowWidth; x += X_SPACE) {
-      stroke('pink');
-      strokeWeight(7);
-      strokeWeight(1);
-      hexagonGrid(x, y, hexagonRadius * 0.9);
-      hexagonGrid(x + X_OFFSET, y + Y_OFFSET, hexagonRadius * 0.9);
+  drawingContext.shadowBlur = 18;
+  drawingContext.shadowColor = 'rgba (80, 160, 255, 0.4)';
+  const r = hexagonRadius;
+  const w = sqrt(3) * r;
+  const vert = 1.5 * r;
+  push();
+  resetMatrix();
+  
+  const cols = ceil(width / w) + 2;
+  const rows = ceil(height / vert) + 2;
+  let t = millis() * 0.001;
+  for (let y = -1; y < rows; y++) {
+    for (let x = -1; x < cols; x++) {
+      let offset =  y % 2 * w / 2 ;
+      let px = x * w + offset;
+      let py = y * vert;
+      let pulse = sin (t + (x + y) * 0.4) * 4;
+      stroke(120 + pulse * 10, 80 + pulse * 20, 255);
+      strokeWeight(1.2 + pulse * 0.05);
+      noFill();
+      hexagonGrid(px, py, r + pulse * 0.15);
     }
   }
+  drawingContext.shadowBlur = 0;
+  pop();
+// const X_OFFSET = hexagonRadius * cos(PI / 6);
+//const Y_OFFSET = hexagonRadius * sin(PI / 6) + hexagonRadius;
+// const X_SPACE = 2 * X_OFFSET;
+//  const Y_SPACE = 2 * Y_OFFSET;
+//  for (let y = 0; y < windowHeight; y += Y_SPACE) {
+//    for (let x = 0; x < windowWidth; x += X_SPACE) {
+//      stroke('pink');
+//      strokeWeight(7);
+//      strokeWeight(1);
+//      hexagonGrid(x, y, hexagonRadius * 0.9);
+//      hexagonGrid(x + X_OFFSET, y + Y_OFFSET, hexagonRadius * 0.9);
+//    }
+// }
 }
 function isAreaFree(checkX, checkY) {
   if(!grid){
@@ -622,21 +675,31 @@ function captureTerritory(player){
   }
   shared.trails[player.gameId] = [];
 }
-function checkKills(player, gx, gy) {
+function checkKills(player, gx, gy, cell) {
   if (!partyIsHost()){
     return;
   }
-  let cell = grid[gy][gx];
+  // If stepping on someone else's trail
   if ( cell >= TRAIL && cell < TERRITORY && cell !== TRAIL + player.gameId){
     let victimId = cell - TRAIL;
-    killPlayer(victimId, player.id);
+    killPlayer(victimId, player.gameId);
   }
 }
-function killPlayer(playerId){
+function killPlayer(victimGameId, killerGameId){
   if (!partyIsHost()){
     return;
   }
-  hostRemovePlayer(playerId);
+  // Find the killer's id
+  for (let id in shared.players){
+    if (shared.players[id].gameId === killerGameId){
+      shared.players[id].kills++;
+      break;
+    }
+  }
+  let victimId = Object.keys(shared.players).find(id => shared.players[id].gameId === victimGameId);
+  if (victimId){
+    hostRemovePlayer(victimId);
+  }
 }
 function hostRemovePlayer(playerId){
   if (!partyIsHost()){
