@@ -6,14 +6,18 @@
 // Paper.io lite
 // John Asiamah
 // 1/19/2025
-//
+// Game instructions
+// Press wasd or arrow keys for player movement
+// Press SHIFT to speed boost
+// Capture territory by moving out of your home base and creating closed loops with open tiles
+// Player with the most territory after 60 seconds wins!
+
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
-// - Animated player movements
-// - Used p5 party for multiplayer
 
-// sprites from https://www.spriters-resource.com/mobile/mergefellas/asset/279334/ 
-
+// - Used p5 party for multiplayer + syncing realTime player movement
+// - Complex grid logic implementation + creating floodfill function
+// - Adding sound effects for territory captures
 
 const SPEED = 7;
 const PLAYER_SIZE = 50;
@@ -26,6 +30,7 @@ const WORLD_COLS = 75;
 const WORLD_ROWS = 75;
 const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;
 const WORLD_HEIGHT = WORLD_ROWS * CELL_SIZE;
+const PLAYER_SPRITE_SCALE = 6.5;
 const MINIMAP_SIZE = 200;
 const MINIMAP_PADDING = 20;
 const SERVER_TICK_RATE = 100;
@@ -39,11 +44,24 @@ const POWER_TRAP = 2;
 const POWER_SPAWN_INTERVAL = 6000;
 const POWER_LIFETIME = 11000;
 const MATCH_DURATION = 60000;
+const FRAME_COLS = 4;
+const FRAME_ROWS = 2;
+const PLAYER_FRAME_COUNT = FRAME_COLS * FRAME_ROWS;
+const FRAME_COUNT = 6;
+
 let shared, guests, my;
 let test;
 let players = [];
-let soccerBrainrot;
+//let soccerBrainrot;
 //let crocoBrainrot;
+let playerSheet;
+let instructions;
+let instructionsButton;
+let showInstructions = false;
+let lastPositions = {};
+let playerFrames = [];
+let playerAnim = {};
+let animFrame = 0;
 let hexagonRadius = 30;
 let grid;
 let cols; 
@@ -60,14 +78,21 @@ let initHost = false;
 let captureSound;
 let lastPowerSpawn = 0;
 let territoryFlashes = [];
+let instructionGrid = [
+  ["Movement", "Use WASD or Arrow keys"],
+  ["To speed Boost", "Hold Shift"],
+  ["Claiming Area", "Loop back to your base"],
+  ["Power Ups/Dots", "increase/decrease territory"],
+  ["How to Win?", "Control the most tiles!"]
+];
 
-
-let theColor = ["red", "blue", "green", "orange", "yellow"];
 
 function preload(){
-  soccerBrainrot = loadImage("soccer-brainrot.jpg");
+  //soccerBrainrot = loadImage("soccer-brainrot.jpg");
   //crocoBrainrot = loadImage("crocodile-brainrot.jpg");
-  captureSound = loadSound("capture.mp3");
+  playerSheet = loadImage("assets/player.png");
+  instructions = loadImage("assets/rules.jpg");
+  captureSound = loadSound("assets/capture.mp3");
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid-room-1");
   shared = partyLoadShared("shared", {
     playerPerspective: 3,
@@ -239,6 +264,16 @@ function setup() {
       shared.grid = generateGrid(cols, rows);
     }
   }
+  if (!playerSheet || playerSheet.width === 0) {
+    return;
+  }
+  playerFrames =  [];
+  const frameWidth = playerSheet.width / FRAME_COUNT;
+  const frameHeight = playerSheet.height;
+  for (let i = 0; i < FRAME_COUNT; i++) {
+    let frame = playerSheet.get(i * frameWidth, 0, frameWidth, frameHeight);
+    playerFrames.push(frame);
+  }
 
   console.log("me", JSON.stringify(my));
   console.log("guests", JSON.stringify(guests));
@@ -351,12 +386,69 @@ function draw() {
   updatePlayer();
   drawWorldBorder();
   drawLeaderboard();
+  drawInstructionsButton();
+  if (showInstructions){
+    drawInstructionsPanel();
+  }
   drawBoostMeter();
   drawMatchTimer();
   drawMinimap();
   playerKills();
 }
+// creating instructions button
+function drawInstructionsButton() {
+  push();
+  resetMatrix();
+  let w = 180;
+  let h = 50;
+  let margin = 20;
 
+  let x = width  - w - margin;
+  let y = height - h - margin;
+  fill(30, 30, 30, 220);
+  stroke(255);
+  rect(x, y, w, h, 10);
+  fill(255);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  text("Instructions", x + w /2, y + h /2);
+  pop();
+}
+
+//displaying instructions panel
+function drawInstructionsPanel() {
+  push();
+  resetMatrix();
+  let panelSize = 360;
+  let padding = 20;
+  let cols = 2;
+  let rows = instructionGrid.length;
+  let cellW = panelSize - padding * 2 / cols;
+  let cellH = 50;
+
+  let x = width /2 - panelSize /2;
+  let y = height / 2 - ( rows * cellH + padding * 2) /2;
+  fill(0, 220);
+  rect(x, y, panelSize, rows * cellH + padding * 2, 16);
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  noStroke();
+  for ( let r = 0; r < rows; r++){
+    for (let c = 0; c < cols; c++) {
+      let cx = x + padding + c * cellW;
+      let cy = y + padding + r * cellH;
+      fill(40, 40, 40 , 220);
+      rect(cx, cy, cellW - 10, cellH -10, 8);
+      fill(255);
+      text (instructionGrid[r][c],
+        cx + (cellW - 10) / 2,
+        cy + (cellH - 10) / 2
+      );
+    }
+  }
+  pop();
+}
 // ensuring the gridIsReady before spawning players into it
 function isGridReady() {
   return grid && grid.length === rows && grid[0] !== null;
@@ -651,7 +743,7 @@ function drawPlayers(){
       let [r, g, b] = playerColor(p.gameId);
       drawPlayerGlow(p.x, p.y, PLAYER_SIZE, r, g, b);
     }
-    image(soccerBrainrot, p.x - PLAYER_SIZE / 2, p.y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+    drawPlayer(p);
     
     if (hostPlayers[id]) {
       hostPlayers[id].drawParticles();
@@ -660,6 +752,41 @@ function drawPlayers(){
       my.player.drawParticles();
     }
   }
+}
+//animated player movement
+function drawPlayer(p) {
+  if (playerFrames.length === 0){
+    return;
+  }
+  if (!playerAnim[p.id]) {
+    playerAnim[p.id] = {
+      frame: 0,
+      lastX: p.x,
+      lastY: p.y
+    };
+  }
+  let anim = playerAnim[p.id];
+
+  let moving = dist(p.x, p.y, anim.lastX, anim.lastY) > 0.5;
+
+  if (moving) {
+    anim.frame += 0.2;
+  }
+  else {
+    anim.frame = 0;
+  }
+
+  anim.lastX = p.x;
+  anim.lastY = p.y;
+  let frame = playerFrames[floor(anim.frame) % playerFrames.length];
+  
+  const PLAYER_DRAW_HEIGHT = CELL_SIZE * 6.4;
+  let aspect = frame.width / frame.height;
+  let drawHeight = PLAYER_DRAW_HEIGHT;
+  let drawWidth = drawHeight * aspect;
+  imageMode(CENTER);
+  image(frame, p.x , p.y, drawWidth, drawHeight );
+  imageMode(CORNER);
 }
 
 function windowResized() {
@@ -1247,6 +1374,17 @@ function updatePlayer(){
   my.inputY = constrain(my.inputY, -1, 1);
 }
 
+//determining if instructions button is clicked
+function mousePressed() {
+  let w = 180;
+  let h = 50;
+  let margin = 20;
+  let x = width - w - margin;
+  let y = height - h - margin;
+  if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h){
+    showInstructions = !showInstructions;
+  }
+}
 //disc room clone input functions
 function moveLeft(){
   return keyIsDown(LEFT_ARROW) || keyIsDown(65);
