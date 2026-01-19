@@ -6,13 +6,13 @@
 - Multiplayer function, with different game modes (time-based)
 
 ## Needs to Have
-- Main game mode with: 
-- Fast speed game mode  ✅
+- Main game mode with ✅: 
+- Fast speed mode  ✅
 - Basic paper io game-logic ✅
 - Functioning leaderboard ✅
 - Dynamic territory grids ✅
 - Add mini map ✅
-- Player Movement animations 
+- Player Movement animations ✅
 - Sound effects for territory captures ✅
 
 ## Nice to Have

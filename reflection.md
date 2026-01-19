@@ -11,4 +11,6 @@
  - The hardest part was definitely implementing the p5party multiplayer aspect of the game. The p5party documentation was hard for me to follow/understand, and it took me a long time to understand the foundational aspects for multiplayer. 
 
 ## Were there any problems you could not solve?
- - I wanted to let player's kill other player's by touching their open trails. However, although I tried numerous times, there were both internal and external factors that prevented me from achieving this.
+ - I wanted to let player's kill other player's by touching their open trails. However, although I tried numerous times, I couldn't quite get the player guest to detect that it had hit another player's trail, and then in turn allow the host to despawn/ kill the hit player. 
+ - I also originally intended to utilize p5play because I felt it would make animating the players a lot easier, but it kept interfering with my hexagon Grid function so I decided to not use it.
+ - There were also mutliple instances during debugging in the console where I would get infinite merging errors.
