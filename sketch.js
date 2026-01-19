@@ -30,7 +30,7 @@ const WORLD_COLS = 75;
 const WORLD_ROWS = 75;
 const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;
 const WORLD_HEIGHT = WORLD_ROWS * CELL_SIZE;
-const PLAYER_SPRITE_SCALE = 6.5;
+const PLAYER_SPRITE_SCALE = 4.5;
 const MINIMAP_SIZE = 200;
 const MINIMAP_PADDING = 20;
 const SERVER_TICK_RATE = 100;
@@ -90,7 +90,7 @@ let instructionGrid = [
 function preload(){
   //soccerBrainrot = loadImage("soccer-brainrot.jpg");
   //crocoBrainrot = loadImage("crocodile-brainrot.jpg");
-  playerSheet = loadImage("assets/player.png");
+  playerSheet = loadImage("assets/players.png");
   instructions = loadImage("assets/rules.jpg");
   captureSound = loadSound("assets/capture.mp3");
   partyConnect("wss://deepstream-server-1.herokuapp.com","grid-room-1");
@@ -780,7 +780,7 @@ function drawPlayer(p) {
   anim.lastY = p.y;
   let frame = playerFrames[floor(anim.frame) % playerFrames.length];
   
-  const PLAYER_DRAW_HEIGHT = CELL_SIZE * 6.4;
+  const PLAYER_DRAW_HEIGHT = CELL_SIZE * 4.0;
   let aspect = frame.width / frame.height;
   let drawHeight = PLAYER_DRAW_HEIGHT;
   let drawWidth = drawHeight * aspect;
